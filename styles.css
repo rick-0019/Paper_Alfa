@@ -158,7 +158,7 @@ body {
 
 /* --- LEFT PARAMETERS SIDEBAR --- */
 .sidebar {
-  width: 380px;
+  width: 440px;
   background: var(--bg-panel);
   border-right: 1px solid var(--border-subtle);
   display: flex;
@@ -168,7 +168,7 @@ body {
 }
 
 .sidebar-content {
-  padding: 24px;
+  padding: 20px;
   display: flex;
   flex-direction: column;
   gap: 24px;
@@ -239,6 +239,35 @@ input[type="number"]:focus, select:focus {
   outline: none;
   border-color: var(--accent-cyan);
   box-shadow: 0 0 0 2px rgba(0, 240, 255, 0.2);
+}
+
+/* Ocultar flechas molestas de número globalmente en todos los inputs numéricos y mejorar legibilidad */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+#loft-stations-container input[type="number"] {
+  text-align: center;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--text-primary);
+  background: var(--bg-dark);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 6px 4px;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+#loft-stations-container input[type="number"]:focus {
+  border-color: var(--accent-cyan);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(0, 240, 255, 0.25);
 }
 
 /* Checkboxes */

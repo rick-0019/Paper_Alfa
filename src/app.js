@@ -357,21 +357,22 @@ class PaperAlfaApp {
     this.loftStations.forEach((station, index) => {
       const row = document.createElement('div');
       row.style.display = 'flex';
-      row.style.gap = '4px';
+      row.style.gap = '6px';
       row.style.alignItems = 'center';
       
       const numLabel = document.createElement('span');
       numLabel.textContent = `#${index + 1}`;
-      numLabel.style.width = '20px';
-      numLabel.style.fontSize = '11px';
+      numLabel.style.width = '24px';
+      numLabel.style.fontSize = '12px';
+      numLabel.style.fontWeight = '700';
       numLabel.style.color = 'var(--text-muted)';
       
       const inputX = document.createElement('input');
       inputX.type = 'number';
       inputX.value = station.x;
-      inputX.style.width = '48px';
+      inputX.style.width = '68px';
       inputX.placeholder = 'X';
-      inputX.title = 'Posición X en el eje';
+      inputX.title = 'Posición X en el eje (mm)';
       inputX.addEventListener('input', (e) => {
         station.x = parseFloat(e.target.value) || 0;
         this.recalculateAndRender();
@@ -380,18 +381,18 @@ class PaperAlfaApp {
       const inputZ = document.createElement('input');
       inputZ.type = 'number';
       inputZ.value = station.z || 0;
-      inputZ.style.width = '44px';
+      inputZ.style.width = '60px';
       inputZ.placeholder = 'Z';
-      inputZ.title = 'Descentrado Z (Elevación en mm)';
+      inputZ.title = 'Descentrado Z / Elevación en mm';
       inputZ.addEventListener('input', (e) => {
         station.z = parseFloat(e.target.value) || 0;
         this.recalculateAndRender();
       });
 
       const selectShape = document.createElement('select');
-      selectShape.style.width = '75px';
+      selectShape.style.width = '88px';
       selectShape.style.fontSize = '11px';
-      selectShape.style.padding = '3px 4px';
+      selectShape.style.padding = '4px';
       selectShape.style.background = 'var(--bg-panel)';
       selectShape.style.color = 'var(--text-primary)';
       selectShape.style.border = '1px solid var(--border-subtle)';
@@ -421,14 +422,14 @@ class PaperAlfaApp {
 
       const dimBox = document.createElement('div');
       dimBox.style.display = 'flex';
-      dimBox.style.gap = '2px';
+      dimBox.style.gap = '4px';
       dimBox.style.flex = '1';
 
       if (station.shape === 'ellipse' || station.shape === 'rect' || station.shape === 'rounded_rect' || station.shape === 'airfoil') {
         const inpW = document.createElement('input');
         inpW.type = 'number';
         inpW.value = station.w || station.d || 60;
-        inpW.style.width = '42px';
+        inpW.style.width = '54px';
         inpW.title = 'Ancho W (mm)';
         inpW.addEventListener('input', (e) => {
           station.w = Math.max(1, parseFloat(e.target.value) || 0);
@@ -437,7 +438,7 @@ class PaperAlfaApp {
         const inpH = document.createElement('input');
         inpH.type = 'number';
         inpH.value = station.h || 40;
-        inpH.style.width = '42px';
+        inpH.style.width = '54px';
         inpH.title = 'Alto H (mm)';
         inpH.addEventListener('input', (e) => {
           station.h = Math.max(1, parseFloat(e.target.value) || 0);
@@ -448,7 +449,8 @@ class PaperAlfaApp {
       } else if (station.shape === 'custom') {
         const lblCustom = document.createElement('span');
         lblCustom.textContent = '[CAD 2D]';
-        lblCustom.style.fontSize = '10px';
+        lblCustom.style.fontSize = '11px';
+        lblCustom.style.fontWeight = '700';
         lblCustom.style.color = 'var(--accent-cyan)';
         lblCustom.style.alignSelf = 'center';
         dimBox.appendChild(lblCustom);
@@ -456,7 +458,7 @@ class PaperAlfaApp {
         const inputD = document.createElement('input');
         inputD.type = 'number';
         inputD.value = station.d || 50;
-        inputD.style.width = '48px';
+        inputD.style.width = '68px';
         inputD.title = 'Diámetro D (mm)';
         inputD.addEventListener('input', (e) => {
           station.d = Math.max(0, parseFloat(e.target.value) || 0);
