@@ -613,29 +613,39 @@ class PaperAlfaApp {
   applySymmetry() {
     if (!this.editingPoints || this.editingPoints.length < 2) return;
     
-    // 1. Detectar si el usuario dibujó mayormente en el lado izquierdo (Y <= 0) o derecho (Y >= 0)
+    // 1. Detectar si el usuario dibujó en el lado izquierdo (Y <= 0) o derecho (Y >= 0)
     const maxPos = Math.max(...this.editingPoints.map(p => p.y));
     const minNeg = Math.min(...this.editingPoints.map(p => p.y));
     const useLeftHalf = (Math.abs(minNeg) > maxPos && maxPos <= 0.5);
     
-    let sourceHalf;
-    if (useLeftHalf) {
-      sourceHalf = this.editingPoints.filter(p => p.y <= 0.1).sort((a, b) => b.z - a.z);
-    } else {
-      sourceHalf = this.editingPoints.filter(p => p.y >= -0.1).sort((a, b) => b.z - a.z);
-    }
+    const sourceHalf = useLeftHalf
+      ? this.editingPoints.filter(p => p.y <= 0.1)
+      : this.editingPoints.filter(p => p.y >= -0.1);
 
     if (sourceHalf.length < 2) return;
 
-    // Lado derecho: de arriba hacia abajo (Z descendente)
-    const rightSide = useLeftHalf
-      ? sourceHalf.map(p => ({ y: Number(Math.abs(p.y).toFixed(1)), z: p.z })).sort((a, b) => b.z - a.z)
-      : sourceHalf.map(p => ({ y: Number(p.y.toFixed(1)), z: p.z })).sort((a, b) => b.z - a.z);
-      
-    // Lado izquierdo: de abajo hacia arriba (Z ascendente)
-    const leftSide = useLeftHalf
-      ? sourceHalf.map(p => ({ y: Number((-Math.abs(p.y)).toFixed(1)), z: p.z })).sort((a, b) => a.z - b.z)
-      : sourceHalf.map(p => ({ y: Number((-Math.abs(p.y)).toFixed(1)), z: p.z })).sort((a, b) => a.z - b.z);
+    // 2. Calcular Z central para ordenar por ángulo polar respecto al centro (evita cruces en líneas horizontales Z=40 o Z=-40)
+    const cz = sourceHalf.reduce((sum, p) => sum + p.z, 0) / sourceHalf.length;
+    const getAngle = (p) => Math.atan2(p.z - cz, Math.abs(p.y));
+    
+    // 3. Ordenar el lado derecho en sentido de las agujas del reloj desde el techo (+90°) hasta la panza (-90°)
+    const rightSide = sourceHalf
+      .map(p => ({ y: Number(Math.abs(p.y).toFixed(1)), z: p.z }))
+      .sort((a, b) => {
+        const angA = getAngle(a);
+        const angB = getAngle(b);
+        if (Math.abs(angA - angB) > 1e-4) {
+          return angB - angA; // Descendente: desde techo (+1.57 rad) a panza (-1.57 rad)
+        }
+        // Si dos puntos están a la misma altura/ángulo (ej. techo plano), ordenar por distancia al centro (Y)
+        return b.y - a.y;
+      });
+
+    // 4. El lado izquierdo recorre en orden inverso (desde panza hasta techo) y con Y negativa
+    const leftSide = rightSide
+      .slice()
+      .reverse()
+      .map(p => ({ y: Number((-p.y).toFixed(1)), z: p.z }));
 
     const combined = [];
     const addUnique = (pt) => {
