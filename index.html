@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PAPER ALFA • CAD Paramétrico de Papercraft Aeronáutico 1:1</title>
+  <meta name="description" content="Aplicación Web interactiva para crear plantillas de papercraft paramétricas con despiece en 2D exportable a PDF en escala real 1:1.">
+
+  <!-- Google Fonts para Tipografía Técnica Premium -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <!-- Librería jsPDF exclusivamente desde CDN (Especificación Obligatoria) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <!-- Three.js y OrbitControls para previsualización 3D en tiempo real -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+  <!-- Hoja de Estilos del Sistema de Diseño -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- ENCABEZADO PRINCIPAL (HEADER) -->
+  <header class="app-header">
+    <div class="brand">
+      <span class="logo-badge">PAPER ALFA</span>
+      <div>
+        <span class="brand-title">MODELING STUDIO</span>
+        <span class="brand-subtitle">CAD 2D/3D • ESPECIFICACIÓN EPSON L355 (A4 1:1)</span>
+      </div>
+    </div>
+
+    <!-- NAVEGADOR DE FASES ARQUITECTÓNICAS -->
+    <nav class="phase-nav">
+      <button class="phase-tab active" data-phase="phase1">
+        <span>Fase 1: Primitivas</span>
+      </button>
+      <button class="phase-tab" data-phase="phase2">
+        <span>Fase 2: Fuselajes (Loft)</span>
+      </button>
+      <button class="phase-tab" data-phase="phase3">
+        <span>Fase 3: Alas Aerodinámicas</span>
+      </button>
+    </nav>
+
+    <!-- ACCIÓN PRINCIPAL DE EXPORTACIÓN -->
+    <div style="display: flex; gap: 12px; align-items: center;">
+      <button id="btn-show-json" class="btn-preset" style="padding: 10px 14px;">
+        { } JSON Spec
+      </button>
+      <button id="btn-export-pdf" class="btn-export" title="Exportar PDF vectorial a escala real 1:1 en mm">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="7 10 12 15 17 10"></polyline>
+          <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+        <span>Exportar PDF A4 (1:1)</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ESPACIO DE TRABAJO PRINCIPAL -->
+  <main class="app-workspace">
+    <!-- BARRA LATERAL IZQUIERDA DE PARÁMETROS -->
+    <aside class="sidebar">
+      <!-- PANEL FASE 1: PRIMITIVAS (ACTIVO) -->
+      <div id="panel-phase1" class="sidebar-content">
+        <div class="section-title">
+          <span>01 // Selección de Figura Geométrica</span>
+        </div>
+        <div class="card-panel">
+          <div class="form-group">
+            <label for="select-primitive">Tipo de Primitiva Paramétrica</label>
+            <select id="select-primitive">
+              <option value="truncated_cone" selected>Cono Truncado (Toberas / Narices)</option>
+              <option value="cylinder">Cilindro / Tubo Aeronáutico</option>
+              <option value="cone">Cono Completo (Punta / Nariz Afilada)</option>
+              <option value="prism">Prisma / Caja Poligonal (N-Lados)</option>
+              <option value="pyramid">Pirámide Poligonal (Punta N-Lados)</option>
+              <option value="hemisphere">Media Esfera / Cúpula (Anillos Latitudinales)</option>
+              <option value="sphere">Esfera Completa (Anillos Latitudinales)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Preajustes Rápidos de Modelismo</label>
+            <div class="presets-grid" style="grid-template-columns: repeat(2, 1fr);">
+              <button id="preset-nozzle" class="btn-preset">Tobera 80x45</button>
+              <button id="preset-nose" class="btn-preset">Nariz Cono</button>
+              <button id="preset-cylinder" class="btn-preset">Tubo 60x100</button>
+              <button id="preset-dome" class="btn-preset">Cúpula 100mm</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-title">
+          <span>02 // Dimensiones Estructurales (MM)</span>
+        </div>
+        <div class="card-panel">
+          <div class="form-group">
+            <label for="input-d1">Diámetro / Base (D1) <span class="unit">MM</span></label>
+            <input type="number" id="input-d1" value="80" min="10" max="190" step="1">
+          </div>
+
+          <div class="form-group" id="group-d2">
+            <label for="input-d2">Diámetro Superior (D2) <span class="unit">MM</span></label>
+            <input type="number" id="input-d2" value="45" min="0" max="190" step="1">
+          </div>
+
+          <div class="form-group" id="group-sides" style="display: none;">
+            <label for="input-sides">Cantidad de Lados / Caras (N) <span class="unit">CARAS</span></label>
+            <input type="number" id="input-sides" value="6" min="3" max="24" step="1">
+          </div>
+
+          <div class="form-group" id="group-rings" style="display: none;">
+            <label for="input-rings">Anillos de Cono / Latitudinales (K) <span class="unit">ANILLOS</span></label>
+            <input type="number" id="input-rings" value="5" min="3" max="12" step="1">
+          </div>
+
+          <div class="form-group" id="group-h">
+            <label for="input-h">Altura del Tronco / Figura (H) <span class="unit">MM</span></label>
+            <input type="number" id="input-h" value="90" min="10" max="250" step="1">
+          </div>
+        </div>
+
+        <div class="section-title">
+          <span>03 // Configuración de Encastre y PDF 1:1</span>
+        </div>
+        <div class="card-panel">
+          <div class="form-group">
+            <label for="input-margin">Margen Seguridad A4 <span class="unit">MM (DEF 5MM)</span></label>
+            <input type="number" id="input-margin" value="5" min="0" max="20" step="1">
+          </div>
+
+          <label class="checkbox-row" style="margin-bottom: 12px;">
+            <input type="checkbox" id="check-no-tabs">
+            <span style="color: var(--accent-cyan); font-weight: 600;">Sin Pestañas / Solapas (Corte a Tope / Láser)</span>
+          </label>
+
+          <div class="form-group" id="group-tab-h">
+            <label for="input-tab-h">Altura Pestañas Dentadas <span class="unit">MM</span></label>
+            <input type="number" id="input-tab-h" value="6" min="3" max="15" step="0.5">
+          </div>
+
+          <div class="form-group" id="group-teeth">
+            <label for="input-teeth">Dientes por Borde Curvo <span class="unit">UNIDADES</span></label>
+            <input type="number" id="input-teeth" value="16" min="6" max="48" step="2">
+          </div>
+
+          <label class="checkbox-row">
+            <input type="checkbox" id="check-top-cap" checked>
+            <span>Incluir Tapa Superior (Círculo D2)</span>
+          </label>
+
+          <label class="checkbox-row">
+            <input type="checkbox" id="check-bottom-cap" checked>
+            <span>Incluir Tapa Inferior (Círculo D1)</span>
+          </label>
+
+          <label class="checkbox-row">
+            <input type="checkbox" id="check-ruler" checked>
+            <span>Imprimir Regla de Verificación 50mm</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- PANEL FASE 2: FUSELAJES LOFT (REVOLUCIÓN 2D -> 3D) -->
+      <div id="panel-phase2" class="sidebar-content hidden">
+        <div class="section-title">
+          <span>01 // Perfil de Revolución por Cuadernas</span>
+        </div>
+        
+        <div class="card-panel">
+          <div class="form-group">
+            <label>Preajustes de Fuselaje</label>
+            <div class="presets-grid" style="grid-template-columns: repeat(2, 1fr);">
+              <button id="preset-loft-rocket" class="btn-preset">Cohete / Torpedo</button>
+              <button id="preset-loft-nozzle" class="btn-preset">Tobera Multietapa</button>
+              <button id="preset-loft-zeppelin" class="btn-preset">Dirigible / Zeppelin</button>
+              <button id="preset-loft-sduct" class="btn-preset" style="border-color: var(--accent-cyan); color: var(--accent-cyan);">Conducto "S" / Codo (Z)</button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label style="display: flex; justify-content: space-between; align-items: center;">
+              <span>Estaciones (Cuadernas)</span>
+              <span style="font-size: 11px; font-weight: normal; color: var(--text-muted);">(X, Z, D) en mm</span>
+            </label>
+            <div id="loft-stations-container" style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px; max-height: 300px; overflow-y: auto; padding-right: 5px;">
+              <!-- Estaciones renderizadas dinámicamente -->
+            </div>
+            <button id="btn-add-station" class="btn-preset" style="margin-top: 10px; width: 100%; border-style: dashed;">
+              + Añadir Cuaderna al Final
+            </button>
+            <div style="display: flex; gap: 6px; margin-top: 6px;">
+              <button id="btn-add-nose-cone" class="btn-preset" style="flex: 1; font-size: 11px; border-color: var(--accent-cyan); color: var(--accent-cyan);" title="Inserta un vértice en X=0 y desplaza el resto">
+                + Morro en Punta (D=0)
+              </button>
+              <button id="btn-add-tail-cone" class="btn-preset" style="flex: 1; font-size: 11px; border-color: var(--accent-orange); color: var(--accent-orange);" title="Inserta un vértice al final">
+                + Cola en Punta (D=0)
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-title">
+          <span>02 // Configuración de Encastre y PDF 1:1</span>
+        </div>
+        <div class="card-panel">
+          <div class="form-group" id="group-loft-tab-h">
+            <label for="input-loft-tab-h">Altura Pestañas Dentadas (mm)</label>
+            <input type="number" id="input-loft-tab-h" value="6" step="0.5">
+          </div>
+          
+          <label class="checkbox-row" style="margin-bottom: 12px;">
+            <input type="checkbox" id="check-loft-no-tabs">
+            <span style="color: var(--accent-cyan); font-weight: 600;">Sin Pestañas / Solapas (Corte a Tope / Láser)</span>
+          </label>
+          <label class="checkbox-row" style="margin-top: 8px;">
+            <input type="checkbox" id="check-loft-caps" checked>
+            <span>Incluir Tapas / Cuadernas Estructurales</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- PANEL FASE 3: ALAS AERODINÁMICAS (PREVIEW ARQUITECTÓNICA) -->
+      <div id="panel-phase3" class="sidebar-content hidden">
+        <div class="section-title">
+          <span>ARQUITECTURA FASE 3 // SUPERFICIES AERODINÁMICAS</span>
+        </div>
+        <div class="card-panel">
+          <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.6;">
+            El módulo de <strong>Alas por Interpolación NACA</strong> genera la piel exterior (intradós y extradós) en una sola pieza envolvente y exporta las costillas internas estructurales para dar rigidez al perfil aeronáutico.
+          </p>
+          <div style="background: rgba(0,0,0,0.4); padding: 12px; border-radius: 8px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--accent-orange);">
+            [ENVERGADURA] 300 mm<br>
+            [PERFIL RAÍZ] Cuerda 120 mm (NACA 0012)<br>
+            [PERFIL PUNTA] Cuerda 60 mm (NACA 0012)<br>
+            [FLECHA] 25°
+          </div>
+          <p style="font-size: 12px; color: var(--text-muted);">
+            * Genera piel exterior en 2D, costillas rígidas y pestañas longitudinales al borde de fuga.
+          </p>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ÁREA CENTRAL DE PREVISUALIZACIÓN Y DESPIECE -->
+    <section class="viewport-area">
+      <!-- BARRA DE HERRAMIENTAS DEL VISOR -->
+      <div class="viewport-toolbar">
+        <div class="view-tabs">
+          <button id="btn-view-2d" class="view-btn active">Despiece 2D (A4 Vectorial)</button>
+          <button id="btn-view-3d" class="view-btn">Vista 3D (Inspección WebGL)</button>
+        </div>
+
+        <!-- SELECTOR DE HOJAS A4 BIEN VISIBLE CON BOTÓN "VER TODAS" -->
+        <div id="page-selector-container" class="page-selector-bar" style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;"></div>
+
+        <div id="layout-status-badge" class="status-badge status-ok">
+          <span class="status-dot"></span>
+          <span>100% ESCALA 1:1 EN A4</span>
+        </div>
+      </div>
+
+      <!-- VISOR 1: LIENZO SVG 2D (HOJA A4 CON GRILLA EN MILÍMETROS) -->
+      <div id="container-2d" class="viewer-container">
+        <svg id="svg-viewer" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 210 297" preserveAspectRatio="xMidYMid meet"></svg>
+        
+        <!-- Controles flotantes de Zoom 2D -->
+        <div class="floating-tools">
+          <button id="btn-reset-zoom" class="icon-btn" title="Centrar / Restablecer Zoom A4">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/><line x1="11" y1="8" x2="11" y2="14"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- VISOR 2: LIENZO THREE.JS 3D (WEBGL INTERACTIVO) -->
+      <div id="container-3d" class="viewer-container hidden">
+        <canvas id="webgl-canvas"></canvas>
+      </div>
+
+      <!-- FOOTER DE MÉTRICAS INGENIERILES Y SELECTOR DE HOJAS -->
+      <footer class="app-footer">
+        <div class="metrics-row">
+          <div class="metric-item">
+            <span class="metric-label">Área Desplegada:</span>
+            <span id="metric-area" class="metric-value">-- cm²</span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">Generatriz (g):</span>
+            <span id="metric-slant" class="metric-value">-- mm</span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">Ángulo Sector (&theta;):</span>
+            <span id="metric-angle" class="metric-value">--°</span>
+          </div>
+        </div>
+      </footer>
+    </section>
+  </main>
+
+  <!-- MODAL DE INSPECCIÓN JSON SPEC (PAPER ALFA V1.0) -->
+  <div id="modal-json" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Estructura de Datos JSON • Especificación Técnica PAPER ALFA v1.0</h3>
+        <button id="btn-close-modal" class="btn-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <pre id="json-output"></pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTROLADOR PRINCIPAL DE LA APLICACIÓN -->
+  <script type="module" src="src/app.js"></script>
+</body>
+</html>
