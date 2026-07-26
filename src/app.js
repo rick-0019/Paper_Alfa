@@ -746,6 +746,67 @@ class PaperAlfaApp {
     svg.appendChild(createEl('line', { x1: -5, y1: 0, x2: 5, y2: 0, stroke: '#0066CC', 'stroke-width': '0.8' }));
     svg.appendChild(createEl('line', { x1: 0, y1: -5, x2: 0, y2: 5, stroke: '#0066CC', 'stroke-width': '0.8' }));
 
+    // Dibujar marcas de graduación (ticks) y etiquetas numéricas de coordenadas en los ejes
+    for (let val = -70; val <= 70; val += 10) {
+      if (val === 0) continue;
+      const isMajor = val % 20 === 0;
+      const tickLen = isMajor ? 1.8 : 1.0;
+      
+      // Ticks en eje Y (horizontal, y=0 en SVG)
+      svg.appendChild(createEl('line', {
+        x1: val, y1: -tickLen, x2: val, y2: tickLen,
+        stroke: isMajor ? '#5E7A9C' : '#2E3C56',
+        'stroke-width': '0.4'
+      }));
+      // Ticks en eje Z (vertical, x=0 en SVG)
+      svg.appendChild(createEl('line', {
+        x1: -tickLen, y1: -val, x2: tickLen, y2: -val,
+        stroke: isMajor ? '#5E7A9C' : '#2E3C56',
+        'stroke-width': '0.4'
+      }));
+
+      // Etiquetas numéricas cada 20 mm
+      if (isMajor) {
+        const textY = createEl('text', {
+          x: val,
+          y: 3.8,
+          fill: '#7B96B8',
+          'font-size': '3.2',
+          'font-family': 'monospace',
+          'text-anchor': 'middle',
+          'user-select': 'none'
+        });
+        textY.textContent = val > 0 ? `+${val}` : `${val}`;
+        svg.appendChild(textY);
+
+        const textZ = createEl('text', {
+          x: 2.2,
+          y: -val + 1.1,
+          fill: '#7B96B8',
+          'font-size': '3.2',
+          'font-family': 'monospace',
+          'text-anchor': 'start',
+          'user-select': 'none'
+        });
+        textZ.textContent = val > 0 ? `+${val}` : `${val}`;
+        svg.appendChild(textZ);
+      }
+    }
+
+    // Etiqueta de Origen (0,0) en la intersección
+    const originText = createEl('text', {
+      x: -1.8,
+      y: 3.8,
+      fill: '#00F0FF',
+      'font-size': '3.4',
+      'font-family': 'monospace',
+      'font-weight': 'bold',
+      'text-anchor': 'end',
+      'user-select': 'none'
+    });
+    originText.textContent = '0';
+    svg.appendChild(originText);
+
     const centroid = this.geometry.calculateShapeCentroid(this.editingPoints);
     const cy = centroid.y;
     const cz = -centroid.z;
