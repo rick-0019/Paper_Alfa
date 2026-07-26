@@ -498,12 +498,55 @@ class PaperAlfaApp {
         btnDel.style.cursor = 'not-allowed';
       }
       
+      const btnCopyRow = document.createElement('button');
+      btnCopyRow.textContent = '📋';
+      btnCopyRow.className = 'btn-preset';
+      btnCopyRow.style.padding = '4px 6px';
+      btnCopyRow.style.minWidth = 'auto';
+      btnCopyRow.title = 'Copiar forma de esta cuaderna';
+      btnCopyRow.addEventListener('click', () => {
+        window.PaperAlfaClipboardStation = JSON.parse(JSON.stringify({
+          shape: station.shape,
+          d: station.d,
+          w: station.w,
+          h: station.h,
+          customPoints: station.customPoints ? JSON.parse(JSON.stringify(station.customPoints)) : null
+        }));
+        btnCopyRow.textContent = '✓';
+        setTimeout(() => { btnCopyRow.textContent = '📋'; }, 1500);
+      });
+
+      const btnPasteRow = document.createElement('button');
+      btnPasteRow.textContent = '📥';
+      btnPasteRow.className = 'btn-preset';
+      btnPasteRow.style.padding = '4px 6px';
+      btnPasteRow.style.minWidth = 'auto';
+      btnPasteRow.title = 'Pegar forma copiada en esta cuaderna';
+      btnPasteRow.addEventListener('click', () => {
+        if (!window.PaperAlfaClipboardStation) {
+          alert('No has copiado ninguna cuaderna aún. Pulsa 📋 primero en la cuaderna origen.');
+          return;
+        }
+        const clip = window.PaperAlfaClipboardStation;
+        station.shape = clip.shape;
+        if (clip.d !== undefined) station.d = clip.d;
+        if (clip.w !== undefined) station.w = clip.w;
+        if (clip.h !== undefined) station.h = clip.h;
+        if (clip.customPoints) {
+          station.customPoints = JSON.parse(JSON.stringify(clip.customPoints));
+        }
+        this.renderLoftStationsUI();
+        this.recalculateAndRender();
+      });
+
       row.appendChild(numLabel);
       row.appendChild(inputX);
       row.appendChild(inputZ);
       row.appendChild(selectShape);
       row.appendChild(dimBox);
       row.appendChild(btnEdit2D);
+      row.appendChild(btnCopyRow);
+      row.appendChild(btnPasteRow);
       row.appendChild(btnDel);
       container.appendChild(row);
     });
@@ -608,6 +651,50 @@ class PaperAlfaApp {
       this.selectedCadPointIndex = 0;
       this.renderCADEditor(true);
     }
+  }
+
+  copyCADProfile() {
+    if (!this.editingPoints || this.editingPoints.length === 0) return;
+    window.PaperAlfaClipboardProfile = JSON.parse(JSON.stringify(this.editingPoints));
+    const status = document.getElementById('cad-clipboard-status');
+    if (status) {
+      status.style.display = 'block';
+      status.textContent = `✓ Perfil copiado (${this.editingPoints.length} vértices en memoria)`;
+      setTimeout(() => { status.style.display = 'none'; }, 3000);
+    }
+  }
+
+  pasteCADProfile() {
+    if (!window.PaperAlfaClipboardProfile || window.PaperAlfaClipboardProfile.length < 3) {
+      alert('No hay ninguna forma en la memoria. Primero pulsa "📋 Copiar Forma" en la cuaderna original.');
+      return;
+    }
+    this.editingPoints = JSON.parse(JSON.stringify(window.PaperAlfaClipboardProfile));
+    this.selectedCadPointIndex = 0;
+    const sel = document.getElementById('cad-select-template');
+    if (sel) sel.value = 'custom';
+    const status = document.getElementById('cad-clipboard-status');
+    if (status) {
+      status.style.display = 'block';
+      status.textContent = `✓ Forma pegada y aplicada en esta cuaderna`;
+      setTimeout(() => { status.style.display = 'none'; }, 3000);
+    }
+    this.renderCADEditor(true);
+  }
+
+  scaleCADProfile(scaleFactor) {
+    if (!this.editingPoints || typeof scaleFactor !== 'number' || isNaN(scaleFactor) || scaleFactor <= 0) return;
+    this.editingPoints.forEach(p => {
+      p.y = Number((p.y * scaleFactor).toFixed(1));
+      p.z = Number((p.z * scaleFactor).toFixed(1));
+    });
+    const status = document.getElementById('cad-clipboard-status');
+    if (status) {
+      status.style.display = 'block';
+      status.textContent = `✓ Tamaño escalado (× ${scaleFactor.toFixed(2)})`;
+      setTimeout(() => { status.style.display = 'none'; }, 3000);
+    }
+    this.renderCADEditor(true);
   }
 
   selectCadPoint(i) {
@@ -944,6 +1031,36 @@ class PaperAlfaApp {
         const sel = document.getElementById('cad-select-template');
         if (sel) sel.value = 'custom';
         this.renderCADEditor(true);
+      });
+    }
+
+    const btnCopyProfile = document.getElementById('btn-cad-copy-profile');
+    if (btnCopyProfile) {
+      btnCopyProfile.addEventListener('click', () => this.copyCADProfile());
+    }
+
+    const btnPasteProfile = document.getElementById('btn-cad-paste-profile');
+    if (btnPasteProfile) {
+      btnPasteProfile.addEventListener('click', () => this.pasteCADProfile());
+    }
+
+    const quickScaleBtns = document.querySelectorAll('.btn-cad-scale-quick');
+    quickScaleBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const scale = parseFloat(btn.dataset.scale);
+        if (scale && !isNaN(scale)) {
+          this.scaleCADProfile(scale);
+        }
+      });
+    });
+
+    const btnApplyScale = document.getElementById('btn-cad-apply-scale');
+    if (btnApplyScale) {
+      btnApplyScale.addEventListener('click', () => {
+        const val = parseFloat(document.getElementById('cad-custom-scale-input')?.value);
+        if (val && !isNaN(val)) {
+          this.scaleCADProfile(val);
+        }
       });
     }
 

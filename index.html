@@ -339,7 +339,27 @@
             </select>
           </div>
           <div class="cad-section">
-            <h4>2. Coordenadas de Vértices (Y, Z mm)</h4>
+            <h4>2. Portapapeles y Escalar Tamaño</h4>
+            <div style="display: flex; gap: 6px; margin-bottom: 8px;">
+              <button id="btn-cad-copy-profile" class="btn-preset" style="flex: 1; font-size: 11px; padding: 6px;" title="Copiar perfil actual a la memoria">📋 Copiar Forma</button>
+              <button id="btn-cad-paste-profile" class="btn-preset" style="flex: 1; font-size: 11px; padding: 6px;" title="Pegar perfil copiado en esta cuaderna">📥 Pegar Forma</button>
+            </div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">Variar tamaño proporcional (escala %):</div>
+            <div style="display: flex; gap: 4px; justify-content: space-between; margin-bottom: 6px;">
+              <button class="btn-preset btn-cad-scale-quick" data-scale="0.90" style="flex: 1; font-size: 10px; padding: 4px;" title="Reducir 10% (-10%)">-10%</button>
+              <button class="btn-preset btn-cad-scale-quick" data-scale="0.95" style="flex: 1; font-size: 10px; padding: 4px;" title="Reducir 5% (-5%)">-5%</button>
+              <button class="btn-preset btn-cad-scale-quick" data-scale="1.05" style="flex: 1; font-size: 10px; padding: 4px;" title="Aumentar 5% (+5%)">+5%</button>
+              <button class="btn-preset btn-cad-scale-quick" data-scale="1.10" style="flex: 1; font-size: 10px; padding: 4px;" title="Aumentar 10% (+10%)">+10%</button>
+            </div>
+            <div style="display: flex; gap: 6px; align-items: center;">
+              <span style="font-size: 11px; color: var(--text-muted);">Factor:</span>
+              <input type="number" id="cad-custom-scale-input" value="1.00" step="0.05" style="width: 70px; background: var(--bg-panel); border: 1px solid var(--border-subtle); color: var(--text-primary); text-align: center; border-radius: 4px; padding: 3px;" />
+              <button id="btn-cad-apply-scale" class="btn-preset" style="flex: 1; font-size: 11px; padding: 4px;">✔ Escalar</button>
+            </div>
+            <div id="cad-clipboard-status" style="font-size: 10px; color: var(--accent-cyan); margin-top: 6px; text-align: center; display: none;"></div>
+          </div>
+          <div class="cad-section">
+            <h4>3. Coordenadas de Vértices (Y, Z mm)</h4>
             <div class="cad-points-table-container">
               <table class="cad-points-table">
                 <thead>
