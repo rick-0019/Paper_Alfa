@@ -359,17 +359,28 @@
             <div><strong>Centroide (X Roja):</strong> <span id="cad-stat-centroid" style="color: #FF3B30;">Y=0.0, Z=0.0</span></div>
             <div><strong>Eje Fuselaje (+ Azul):</strong> <span style="color: #0066CC;">Y=0.0, Z=0.0</span></div>
             <div><strong>Área Sección:</strong> <span id="cad-stat-area">0 cm²</span></div>
+            <div><strong>Perímetro Total (L):</strong> <span id="cad-stat-perim" style="color: var(--accent-cyan);">-- mm</span></div>
+            <div><strong>Caja Envolvente:</strong> <span id="cad-stat-bbox">W=-- mm × H=-- mm</span></div>
+            <div id="cad-stat-selected" style="color: var(--accent-cyan); font-size: 11px; margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--border-subtle);">
+              <i>Pincha en un punto del lienzo o tabla para ver coordenadas y distancias.</i>
+            </div>
           </div>
           <div class="cad-footer-actions">
             <button id="btn-cad-apply" class="btn-action">✔ Aplicar a Cuaderna</button>
           </div>
         </div>
         <div class="cad-canvas-container">
-          <div class="cad-toolbar">
+          <div class="cad-toolbar" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
             <label class="checkbox-label" style="font-size: 11px; display: flex; align-items: center; gap: 4px;">
               <input type="checkbox" id="cad-snap-mm" checked /> Ajustar a grilla 1 mm
             </label>
-            <button id="btn-cad-clear" class="btn-preset" style="font-size: 11px;">🗑️ Limpiar Dibujo</button>
+            <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+              <button id="btn-cad-undo" class="btn-preset" style="font-size: 11px; padding: 4px 8px;" title="Deshacer último cambio (Ctrl+Z)">↩ Deshacer</button>
+              <button id="btn-cad-redo" class="btn-preset" style="font-size: 11px; padding: 4px 8px;" title="Rehacer último cambio (Ctrl+Y)">↪ Rehacer</button>
+              <button id="btn-cad-symmetry" class="btn-preset" style="font-size: 11px; padding: 4px 8px;" title="Espejar horizontalmente respecto al eje Z">⇄ Simetría</button>
+              <button id="btn-cad-center" class="btn-preset" style="font-size: 11px; padding: 4px 8px;" title="Desplazar la figura para centrar el centroide en el origen (0,0)">⌖ Centrar</button>
+              <button id="btn-cad-clear" class="btn-preset" style="font-size: 11px; padding: 4px 8px;">🗑️ Limpiar</button>
+            </div>
           </div>
           <svg id="cad-svg-editor" viewBox="-80 -80 160 160" xmlns="http://www.w3.org/2000/svg">
             <!-- Grilla, cruz central y dibujo de polilínea -->

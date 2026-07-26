@@ -656,6 +656,22 @@ input[type="number"] {
   border-radius: 4px;
   padding: 3px;
 }
+.cad-points-table tbody tr {
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.cad-points-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+.cad-points-table tbody tr.selected-row {
+  background: rgba(0, 240, 255, 0.22) !important;
+  border-left: 3px solid var(--accent-cyan);
+}
+.cad-points-table tbody tr.selected-row input {
+  border-color: var(--accent-cyan);
+  background: var(--bg-dark);
+  font-weight: 700;
+}
 .cad-stats-box {
   font-size: 12px;
   display: flex;

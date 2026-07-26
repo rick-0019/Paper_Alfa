@@ -523,18 +523,96 @@ class PaperAlfaApp {
       this.editingPoints = pts.slice(0, pts.length - 1).map(p => ({ y: Number(p.y.toFixed(1)), z: Number(p.z.toFixed(1)) }));
     }
 
+    this.cadHistory = [JSON.parse(JSON.stringify(this.editingPoints))];
+    this.cadHistoryIndex = 0;
+    this.selectedCadPointIndex = 0;
+
     const select = document.getElementById('cad-select-template');
     if (select) select.value = station.shape || 'circle';
 
-    this.renderCADEditor();
+    this.renderCADEditor(false);
   }
 
-  renderCADEditor() {
+  pushCadHistory() {
+    if (!this.editingPoints) return;
+    this.cadHistory = this.cadHistory.slice(0, this.cadHistoryIndex + 1);
+    this.cadHistory.push(JSON.parse(JSON.stringify(this.editingPoints)));
+    if (this.cadHistory.length > 40) {
+      this.cadHistory.shift();
+    } else {
+      this.cadHistoryIndex++;
+    }
+    this.cadHistoryIndex = this.cadHistory.length - 1;
+  }
+
+  cadUndo() {
+    if (this.cadHistoryIndex > 0) {
+      this.cadHistoryIndex--;
+      this.editingPoints = JSON.parse(JSON.stringify(this.cadHistory[this.cadHistoryIndex]));
+      if (this.selectedCadPointIndex >= this.editingPoints.length) {
+        this.selectedCadPointIndex = this.editingPoints.length - 1;
+      }
+      this.renderCADEditor(false);
+    }
+  }
+
+  cadRedo() {
+    if (this.cadHistoryIndex < this.cadHistory.length - 1) {
+      this.cadHistoryIndex++;
+      this.editingPoints = JSON.parse(JSON.stringify(this.cadHistory[this.cadHistoryIndex]));
+      if (this.selectedCadPointIndex >= this.editingPoints.length) {
+        this.selectedCadPointIndex = this.editingPoints.length - 1;
+      }
+      this.renderCADEditor(false);
+    }
+  }
+
+  selectCadPoint(i) {
+    if (!this.editingPoints || i < 0 || i >= this.editingPoints.length) return;
+    this.selectedCadPointIndex = i;
+    
+    // Resaltar en tabla y hacer scroll
+    const rows = document.querySelectorAll('#cad-points-tbody tr');
+    rows.forEach((r, idx) => {
+      r.classList.toggle('selected-row', idx === i);
+      if (idx === i) {
+        r.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    });
+
+    // Mostrar estadísticas y distancias en vivo del punto seleccionado
+    const box = document.getElementById('cad-stat-selected');
+    if (box && this.editingPoints[i]) {
+      const pt = this.editingPoints[i];
+      const n = this.editingPoints.length;
+      const prevPt = this.editingPoints[(i - 1 + n) % n];
+      const nextPt = this.editingPoints[(i + 1) % n];
+      const dPrev = Math.hypot(pt.y - prevPt.y, pt.z - prevPt.z).toFixed(1);
+      const dNext = Math.hypot(pt.y - nextPt.y, pt.z - nextPt.z).toFixed(1);
+      box.innerHTML = `
+        <div style="font-weight: 700; color: #FFF; margin-bottom: 2px;">📍 Vértice #${i + 1} Seleccionado</div>
+        <div>Coord: <strong>Y = ${pt.y} mm</strong> | <strong>Z = ${pt.z} mm</strong></div>
+        <div style="color: var(--text-secondary); margin-top: 2px;">
+          ↔ Distancia anterior (#${(i - 1 + n) % n + 1}): <strong>${dPrev} mm</strong> | siguiente (#${(i + 1) % n + 1}): <strong>${dNext} mm</strong>
+        </div>
+      `;
+    }
+
+    this.drawCADCanvas();
+  }
+
+  renderCADEditor(pushHistory = true) {
+    if (pushHistory) this.pushCadHistory();
     const tbody = document.getElementById('cad-points-tbody');
     if (tbody && this.editingPoints) {
       tbody.innerHTML = '';
       this.editingPoints.forEach((pt, i) => {
         const tr = document.createElement('tr');
+        tr.addEventListener('click', (e) => {
+          if (!e.target.matches('input, button')) {
+            this.selectCadPoint(i);
+          }
+        });
         
         const tdIdx = document.createElement('td');
         tdIdx.textContent = i + 1;
@@ -544,9 +622,12 @@ class PaperAlfaApp {
         inpY.type = 'number';
         inpY.step = '0.5';
         inpY.value = pt.y;
+        inpY.addEventListener('focus', () => this.selectCadPoint(i));
         inpY.addEventListener('input', (e) => {
           pt.y = parseFloat(e.target.value) || 0;
+          this.pushCadHistory();
           this.drawCADCanvas();
+          this.selectCadPoint(i);
         });
         tdY.appendChild(inpY);
 
@@ -555,9 +636,12 @@ class PaperAlfaApp {
         inpZ.type = 'number';
         inpZ.step = '0.5';
         inpZ.value = pt.z;
+        inpZ.addEventListener('focus', () => this.selectCadPoint(i));
         inpZ.addEventListener('input', (e) => {
           pt.z = parseFloat(e.target.value) || 0;
+          this.pushCadHistory();
           this.drawCADCanvas();
+          this.selectCadPoint(i);
         });
         tdZ.appendChild(inpZ);
 
@@ -568,10 +652,14 @@ class PaperAlfaApp {
         btnD.style.padding = '2px 5px';
         btnD.style.color = '#ff4a4a';
         btnD.style.borderColor = 'transparent';
-        btnD.addEventListener('click', () => {
+        btnD.addEventListener('click', (e) => {
+          e.stopPropagation();
           if (this.editingPoints.length > 3) {
             this.editingPoints.splice(i, 1);
-            this.renderCADEditor();
+            if (this.selectedCadPointIndex >= this.editingPoints.length) {
+              this.selectedCadPointIndex = this.editingPoints.length - 1;
+            }
+            this.renderCADEditor(true);
           }
         });
         tdDel.appendChild(btnD);
@@ -585,6 +673,9 @@ class PaperAlfaApp {
     }
 
     this.drawCADCanvas();
+    if (this.selectedCadPointIndex !== null && this.editingPoints && this.selectedCadPointIndex < this.editingPoints.length) {
+      this.selectCadPoint(this.selectedCadPointIndex);
+    }
   }
 
   drawCADCanvas() {
@@ -620,8 +711,27 @@ class PaperAlfaApp {
     if (spanCentroid) spanCentroid.textContent = `Y=${cy.toFixed(1)} mm, Z=${(-cz).toFixed(1)} mm`;
     const spanArea = document.getElementById('cad-stat-area');
     if (spanArea && centroid.area !== undefined) {
-      spanArea.textContent = `${(centroid.area / 100).toFixed(2)} cm²`;
+      spanArea.textContent = `${(centroid.area / 100).toFixed(2)} cm² (${centroid.area.toFixed(0)} mm²)`;
     }
+
+    // Calcular Perímetro Total (L) y Caja Envolvente (W x H)
+    let perim = 0;
+    const pts = this.editingPoints;
+    const n = pts.length;
+    for (let i = 0; i < n; i++) {
+      const p1 = pts[i];
+      const p2 = pts[(i + 1) % n];
+      perim += Math.hypot(p2.y - p1.y, p2.z - p1.z);
+    }
+    const spanPerim = document.getElementById('cad-stat-perim');
+    if (spanPerim) spanPerim.textContent = `${perim.toFixed(1)} mm (${(perim / 10).toFixed(1)} cm)`;
+
+    const ys = pts.map(p => p.y);
+    const zs = pts.map(p => p.z);
+    const wBox = Math.max(...ys) - Math.min(...ys);
+    const hBox = Math.max(...zs) - Math.min(...zs);
+    const spanBBox = document.getElementById('cad-stat-bbox');
+    if (spanBBox) spanBBox.textContent = `W=${wBox.toFixed(1)} mm × H=${hBox.toFixed(1)} mm`;
 
     const sz = 4;
     svg.appendChild(createEl('line', { x1: cy - sz, y1: cz - sz, x2: cy + sz, y2: cz + sz, stroke: '#FF3B30', 'stroke-width': '0.8' }));
@@ -636,13 +746,30 @@ class PaperAlfaApp {
     }));
 
     this.editingPoints.forEach((pt, i) => {
+      const isSelected = (i === this.selectedCadPointIndex);
+      if (isSelected) {
+        svg.appendChild(createEl('circle', {
+          cx: pt.y,
+          cy: -pt.z,
+          r: 5.5,
+          fill: 'none',
+          stroke: '#00F0FF',
+          'stroke-width': '0.8',
+          opacity: '0.7'
+        }));
+      }
       const circle = createEl('circle', {
         cx: pt.y,
         cy: -pt.z,
-        r: 1.8,
-        fill: '#FF8000',
+        r: isSelected ? 3.2 : 1.8,
+        fill: isSelected ? '#00F0FF' : '#FF8000',
         stroke: '#FFFFFF',
-        'stroke-width': '0.4'
+        'stroke-width': isSelected ? '0.8' : '0.4',
+        style: 'cursor: pointer;'
+      });
+      circle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.selectCadPoint(i);
       });
       svg.appendChild(circle);
     });
@@ -659,11 +786,56 @@ class PaperAlfaApp {
     if (btnAdd) {
       btnAdd.addEventListener('click', () => {
         if (!this.editingPoints || this.editingPoints.length === 0) return;
-        const last = this.editingPoints[this.editingPoints.length - 1];
-        const first = this.editingPoints[0];
-        const newPt = { y: Math.round((last.y + first.y) / 2), z: Math.round((last.z + first.z) / 2) };
-        this.editingPoints.push(newPt);
-        this.renderCADEditor();
+        const idx = (this.selectedCadPointIndex !== null && this.selectedCadPointIndex < this.editingPoints.length)
+          ? this.selectedCadPointIndex
+          : this.editingPoints.length - 1;
+        const nextIdx = (idx + 1) % this.editingPoints.length;
+        const p1 = this.editingPoints[idx];
+        const p2 = this.editingPoints[nextIdx];
+        const newPt = { y: Math.round((p1.y + p2.y) / 2), z: Math.round((p1.z + p2.z) / 2) };
+        this.editingPoints.splice(idx + 1, 0, newPt);
+        this.selectedCadPointIndex = idx + 1;
+        this.renderCADEditor(true);
+      });
+    }
+
+    const btnUndo = document.getElementById('btn-cad-undo');
+    if (btnUndo) {
+      btnUndo.addEventListener('click', () => this.cadUndo());
+    }
+
+    const btnRedo = document.getElementById('btn-cad-redo');
+    if (btnRedo) {
+      btnRedo.addEventListener('click', () => this.cadRedo());
+    }
+
+    const btnSymmetry = document.getElementById('btn-cad-symmetry');
+    if (btnSymmetry) {
+      btnSymmetry.addEventListener('click', () => {
+        if (!this.editingPoints) return;
+        const rightHalf = this.editingPoints.filter(p => p.y >= -0.01).sort((a, b) => b.z - a.z);
+        if (rightHalf.length >= 2) {
+          const leftHalf = rightHalf.slice().reverse().map(p => ({ y: -p.y, z: p.z }));
+          const combined = [...rightHalf];
+          leftHalf.forEach(lp => {
+            if (Math.abs(lp.y) > 0.01) combined.push(lp);
+          });
+          this.editingPoints = combined;
+          this.renderCADEditor(true);
+        }
+      });
+    }
+
+    const btnCenter = document.getElementById('btn-cad-center');
+    if (btnCenter) {
+      btnCenter.addEventListener('click', () => {
+        if (!this.editingPoints) return;
+        const c = this.geometry.calculateShapeCentroid(this.editingPoints);
+        this.editingPoints.forEach(p => {
+          p.y = Number((p.y - c.y).toFixed(1));
+          p.z = Number((p.z - c.z).toFixed(1));
+        });
+        this.renderCADEditor(true);
       });
     }
 
@@ -676,9 +848,10 @@ class PaperAlfaApp {
           { y: 25, z: 15 },
           { y: -25, z: 15 }
         ];
+        this.selectedCadPointIndex = 0;
         const sel = document.getElementById('cad-select-template');
         if (sel) sel.value = 'custom';
-        this.renderCADEditor();
+        this.renderCADEditor(true);
       });
     }
 
@@ -689,7 +862,8 @@ class PaperAlfaApp {
         this.editingStation.shape = e.target.value;
         const pts = this.geometry.getStationPerimeter2D(this.editingStation, 16);
         this.editingPoints = pts.slice(0, pts.length - 1).map(p => ({ y: Number(p.y.toFixed(1)), z: Number(p.z.toFixed(1)) }));
-        this.renderCADEditor();
+        this.selectedCadPointIndex = 0;
+        this.renderCADEditor(true);
       });
     }
 
@@ -713,9 +887,38 @@ class PaperAlfaApp {
         }
 
         this.editingPoints.push({ y: yCoord, z: zCoord });
-        this.renderCADEditor();
+        this.selectedCadPointIndex = this.editingPoints.length - 1;
+        this.renderCADEditor(true);
       });
     }
+
+    window.addEventListener('keydown', (e) => {
+      const cadModal = document.getElementById('modal-station-editor');
+      if (!cadModal || cadModal.classList.contains('hidden')) return;
+
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z')) {
+        e.preventDefault();
+        if (e.shiftKey) {
+          this.cadRedo();
+        } else {
+          this.cadUndo();
+        }
+      } else if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || e.key === 'Y')) {
+        e.preventDefault();
+        this.cadRedo();
+      } else if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (!e.target.matches('input, textarea, select')) {
+          if (this.selectedCadPointIndex !== null && this.editingPoints && this.editingPoints.length > 3) {
+            e.preventDefault();
+            this.editingPoints.splice(this.selectedCadPointIndex, 1);
+            if (this.selectedCadPointIndex >= this.editingPoints.length) {
+              this.selectedCadPointIndex = this.editingPoints.length - 1;
+            }
+            this.renderCADEditor(true);
+          }
+        }
+      }
+    });
 
     const btnApply = document.getElementById('btn-cad-apply');
     if (btnApply) {
