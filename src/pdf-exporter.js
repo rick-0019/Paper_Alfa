@@ -102,6 +102,22 @@ export class PaperAlfaPdfExporter {
       lines.valleyFolds.forEach(line => this.renderLineOrArc(doc, line, originX, originY));
     }
 
+    // A2) Marcas CAD técnicas (cruces X de centro y eje +)
+    if (lines.markings) {
+      lines.markings.forEach(line => {
+        if (line.type === 'centroid-x') {
+          doc.setDrawColor(255, 59, 48); // Rojo técnica X
+          doc.setLineWidth(0.15);
+          doc.setLineDash([1, 0.5], 0);
+        } else {
+          doc.setDrawColor(0, 102, 204); // Azul eje 0,0 +
+          doc.setLineWidth(0.12);
+          doc.setLineDash([], 0);
+        }
+        this.renderLineOrArc(doc, line, originX, originY);
+      });
+    }
+
     // B) Después las líneas de corte exterior (negro continuo)
     if (lines.cuts) {
       doc.setDrawColor(0, 0, 0);     // Negro puro

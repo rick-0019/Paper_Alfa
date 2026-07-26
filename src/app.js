@@ -113,6 +113,8 @@ class PaperAlfaApp {
         this.onPrimitiveChanged(e.target.value);
       });
     }
+
+    this.setupStationEditorModal();
   }
 
   bindToolbarButtons() {
@@ -224,6 +226,18 @@ class PaperAlfaApp {
         { id: 4, x: 140, z: -40, d: 60 }, // Transición oblicua bajando -40 mm en Z
         { id: 5, x: 190, z: -40, d: 60 },
         { id: 6, x: 230, z: -40, d: 40 }
+      ],
+      'preset-loft-intake': [
+        { id: 1, x: 0, z: 0, d: 50, shape: 'rect', w: 50, h: 50 },
+        { id: 2, x: 50, z: 0, d: 60, shape: 'circle' },
+        { id: 3, x: 120, z: 0, d: 60, shape: 'circle' },
+        { id: 4, x: 170, z: 0, d: 40, shape: 'circle' }
+      ],
+      'preset-loft-oval': [
+        { id: 1, x: 0, z: 0, d: 20, shape: 'ellipse', w: 30, h: 15 },
+        { id: 2, x: 40, z: 0, d: 60, shape: 'ellipse', w: 80, h: 40 },
+        { id: 3, x: 120, z: 0, d: 60, shape: 'ellipse', w: 80, h: 40 },
+        { id: 4, x: 160, z: 0, d: 40, shape: 'circle', d: 40 }
       ]
     };
 
@@ -343,21 +357,20 @@ class PaperAlfaApp {
     this.loftStations.forEach((station, index) => {
       const row = document.createElement('div');
       row.style.display = 'flex';
-      row.style.gap = '6px';
+      row.style.gap = '4px';
       row.style.alignItems = 'center';
       
       const numLabel = document.createElement('span');
       numLabel.textContent = `#${index + 1}`;
-      numLabel.style.width = '24px';
-      numLabel.style.fontSize = '12px';
+      numLabel.style.width = '20px';
+      numLabel.style.fontSize = '11px';
       numLabel.style.color = 'var(--text-muted)';
       
       const inputX = document.createElement('input');
       inputX.type = 'number';
       inputX.value = station.x;
-      inputX.style.flex = '1';
-      inputX.style.minWidth = '0';
-      inputX.placeholder = 'X (mm)';
+      inputX.style.width = '48px';
+      inputX.placeholder = 'X';
       inputX.title = 'Posición X en el eje';
       inputX.addEventListener('input', (e) => {
         station.x = parseFloat(e.target.value) || 0;
@@ -367,31 +380,105 @@ class PaperAlfaApp {
       const inputZ = document.createElement('input');
       inputZ.type = 'number';
       inputZ.value = station.z || 0;
-      inputZ.style.flex = '1';
-      inputZ.style.minWidth = '0';
-      inputZ.placeholder = 'Z (mm)';
-      inputZ.title = 'Elevación Z / Descentrado Vertical';
+      inputZ.style.width = '44px';
+      inputZ.placeholder = 'Z';
+      inputZ.title = 'Descentrado Z (Elevación en mm)';
       inputZ.addEventListener('input', (e) => {
         station.z = parseFloat(e.target.value) || 0;
         this.recalculateAndRender();
       });
 
-      const inputD = document.createElement('input');
-      inputD.type = 'number';
-      inputD.value = station.d;
-      inputD.style.flex = '1';
-      inputD.style.minWidth = '0';
-      inputD.placeholder = 'D (mm)';
-      inputD.title = 'Diámetro exterior';
-      inputD.addEventListener('input', (e) => {
-        station.d = Math.max(0, parseFloat(e.target.value) || 0);
+      const selectShape = document.createElement('select');
+      selectShape.style.width = '75px';
+      selectShape.style.fontSize = '11px';
+      selectShape.style.padding = '3px 4px';
+      selectShape.style.background = 'var(--bg-panel)';
+      selectShape.style.color = 'var(--text-primary)';
+      selectShape.style.border = '1px solid var(--border-subtle)';
+      selectShape.style.borderRadius = '4px';
+
+      const shapes = [
+        { val: 'circle', label: 'Círculo' },
+        { val: 'ellipse', label: 'Elipse' },
+        { val: 'rect', label: 'Rectángulo' },
+        { val: 'rounded_rect', label: 'Rect. Red.' },
+        { val: 'polygon', label: 'Polígono' },
+        { val: 'airfoil', label: 'Perfil NACA' },
+        { val: 'custom', label: 'Personalizado' }
+      ];
+      shapes.forEach(sh => {
+        const opt = document.createElement('option');
+        opt.value = sh.val;
+        opt.textContent = sh.label;
+        if ((station.shape || 'circle') === sh.val) opt.selected = true;
+        selectShape.appendChild(opt);
+      });
+      selectShape.addEventListener('change', (e) => {
+        station.shape = e.target.value;
+        this.renderLoftStationsUI();
         this.recalculateAndRender();
+      });
+
+      const dimBox = document.createElement('div');
+      dimBox.style.display = 'flex';
+      dimBox.style.gap = '2px';
+      dimBox.style.flex = '1';
+
+      if (station.shape === 'ellipse' || station.shape === 'rect' || station.shape === 'rounded_rect' || station.shape === 'airfoil') {
+        const inpW = document.createElement('input');
+        inpW.type = 'number';
+        inpW.value = station.w || station.d || 60;
+        inpW.style.width = '42px';
+        inpW.title = 'Ancho W (mm)';
+        inpW.addEventListener('input', (e) => {
+          station.w = Math.max(1, parseFloat(e.target.value) || 0);
+          this.recalculateAndRender();
+        });
+        const inpH = document.createElement('input');
+        inpH.type = 'number';
+        inpH.value = station.h || 40;
+        inpH.style.width = '42px';
+        inpH.title = 'Alto H (mm)';
+        inpH.addEventListener('input', (e) => {
+          station.h = Math.max(1, parseFloat(e.target.value) || 0);
+          this.recalculateAndRender();
+        });
+        dimBox.appendChild(inpW);
+        dimBox.appendChild(inpH);
+      } else if (station.shape === 'custom') {
+        const lblCustom = document.createElement('span');
+        lblCustom.textContent = '[CAD 2D]';
+        lblCustom.style.fontSize = '10px';
+        lblCustom.style.color = 'var(--accent-cyan)';
+        lblCustom.style.alignSelf = 'center';
+        dimBox.appendChild(lblCustom);
+      } else {
+        const inputD = document.createElement('input');
+        inputD.type = 'number';
+        inputD.value = station.d || 50;
+        inputD.style.width = '48px';
+        inputD.title = 'Diámetro D (mm)';
+        inputD.addEventListener('input', (e) => {
+          station.d = Math.max(0, parseFloat(e.target.value) || 0);
+          this.recalculateAndRender();
+        });
+        dimBox.appendChild(inputD);
+      }
+
+      const btnEdit2D = document.createElement('button');
+      btnEdit2D.textContent = '✏️';
+      btnEdit2D.className = 'btn-preset';
+      btnEdit2D.style.padding = '4px 6px';
+      btnEdit2D.style.minWidth = 'auto';
+      btnEdit2D.title = 'Dibujar / Editar Forma 2D en Milímetros';
+      btnEdit2D.addEventListener('click', () => {
+        this.openStationEditorModal(station, index);
       });
       
       const btnDel = document.createElement('button');
       btnDel.textContent = '×';
       btnDel.className = 'btn-preset';
-      btnDel.style.padding = '4px 8px';
+      btnDel.style.padding = '4px 6px';
       btnDel.style.minWidth = 'auto';
       btnDel.style.color = '#ff4a4a';
       btnDel.style.borderColor = 'transparent';
@@ -412,10 +499,233 @@ class PaperAlfaApp {
       row.appendChild(numLabel);
       row.appendChild(inputX);
       row.appendChild(inputZ);
-      row.appendChild(inputD);
+      row.appendChild(selectShape);
+      row.appendChild(dimBox);
+      row.appendChild(btnEdit2D);
       row.appendChild(btnDel);
       container.appendChild(row);
     });
+  }
+
+  openStationEditorModal(station, index) {
+    this.editingStation = station;
+    this.editingStationIndex = index;
+    const modal = document.getElementById('modal-station-editor');
+    if (!modal) return;
+    modal.classList.remove('hidden');
+
+    if (station.customPoints && station.customPoints.length >= 3) {
+      this.editingPoints = JSON.parse(JSON.stringify(station.customPoints));
+    } else {
+      const pts = this.geometry.getStationPerimeter2D(station, 16);
+      this.editingPoints = pts.slice(0, pts.length - 1).map(p => ({ y: Number(p.y.toFixed(1)), z: Number(p.z.toFixed(1)) }));
+    }
+
+    const select = document.getElementById('cad-select-template');
+    if (select) select.value = station.shape || 'circle';
+
+    this.renderCADEditor();
+  }
+
+  renderCADEditor() {
+    const tbody = document.getElementById('cad-points-tbody');
+    if (tbody && this.editingPoints) {
+      tbody.innerHTML = '';
+      this.editingPoints.forEach((pt, i) => {
+        const tr = document.createElement('tr');
+        
+        const tdIdx = document.createElement('td');
+        tdIdx.textContent = i + 1;
+        
+        const tdY = document.createElement('td');
+        const inpY = document.createElement('input');
+        inpY.type = 'number';
+        inpY.step = '0.5';
+        inpY.value = pt.y;
+        inpY.addEventListener('input', (e) => {
+          pt.y = parseFloat(e.target.value) || 0;
+          this.drawCADCanvas();
+        });
+        tdY.appendChild(inpY);
+
+        const tdZ = document.createElement('td');
+        const inpZ = document.createElement('input');
+        inpZ.type = 'number';
+        inpZ.step = '0.5';
+        inpZ.value = pt.z;
+        inpZ.addEventListener('input', (e) => {
+          pt.z = parseFloat(e.target.value) || 0;
+          this.drawCADCanvas();
+        });
+        tdZ.appendChild(inpZ);
+
+        const tdDel = document.createElement('td');
+        const btnD = document.createElement('button');
+        btnD.textContent = '×';
+        btnD.className = 'btn-preset';
+        btnD.style.padding = '2px 5px';
+        btnD.style.color = '#ff4a4a';
+        btnD.style.borderColor = 'transparent';
+        btnD.addEventListener('click', () => {
+          if (this.editingPoints.length > 3) {
+            this.editingPoints.splice(i, 1);
+            this.renderCADEditor();
+          }
+        });
+        tdDel.appendChild(btnD);
+
+        tr.appendChild(tdIdx);
+        tr.appendChild(tdY);
+        tr.appendChild(tdZ);
+        tr.appendChild(tdDel);
+        tbody.appendChild(tr);
+      });
+    }
+
+    this.drawCADCanvas();
+  }
+
+  drawCADCanvas() {
+    const svg = document.getElementById('cad-svg-editor');
+    if (!svg || !this.editingPoints) return;
+    svg.innerHTML = '';
+
+    const createEl = (tag, attrs) => {
+      const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+      Object.entries(attrs).forEach(([k, v]) => el.setAttribute(k, v));
+      return el;
+    };
+
+    for (let g = -80; g <= 80; g += 10) {
+      const isMajor = g % 50 === 0;
+      const color = isMajor ? '#2E3C56' : '#1A2333';
+      const width = isMajor ? '0.4' : '0.2';
+      svg.appendChild(createEl('line', { x1: g, y1: -80, x2: g, y2: 80, stroke: color, 'stroke-width': width }));
+      svg.appendChild(createEl('line', { x1: -80, y1: g, x2: 80, y2: g, stroke: color, 'stroke-width': width }));
+    }
+
+    svg.appendChild(createEl('line', { x1: -80, y1: 0, x2: 80, y2: 0, stroke: '#0066CC', 'stroke-width': '0.5' }));
+    svg.appendChild(createEl('line', { x1: 0, y1: -80, x2: 0, y2: 80, stroke: '#0066CC', 'stroke-width': '0.5' }));
+
+    svg.appendChild(createEl('line', { x1: -5, y1: 0, x2: 5, y2: 0, stroke: '#0066CC', 'stroke-width': '0.8' }));
+    svg.appendChild(createEl('line', { x1: 0, y1: -5, x2: 0, y2: 5, stroke: '#0066CC', 'stroke-width': '0.8' }));
+
+    const centroid = this.geometry.calculateShapeCentroid(this.editingPoints);
+    const cy = centroid.y;
+    const cz = -centroid.z;
+    
+    const spanCentroid = document.getElementById('cad-stat-centroid');
+    if (spanCentroid) spanCentroid.textContent = `Y=${cy.toFixed(1)} mm, Z=${(-cz).toFixed(1)} mm`;
+    const spanArea = document.getElementById('cad-stat-area');
+    if (spanArea && centroid.area !== undefined) {
+      spanArea.textContent = `${(centroid.area / 100).toFixed(2)} cm²`;
+    }
+
+    const sz = 4;
+    svg.appendChild(createEl('line', { x1: cy - sz, y1: cz - sz, x2: cy + sz, y2: cz + sz, stroke: '#FF3B30', 'stroke-width': '0.8' }));
+    svg.appendChild(createEl('line', { x1: cy - sz, y1: cz + sz, x2: cy + sz, y2: cz - sz, stroke: '#FF3B30', 'stroke-width': '0.8' }));
+
+    const pointsStr = [...this.editingPoints, this.editingPoints[0]].map(p => `${p.y},${-p.z}`).join(' ');
+    svg.appendChild(createEl('polygon', {
+      points: pointsStr,
+      fill: 'rgba(0, 240, 255, 0.12)',
+      stroke: '#00F0FF',
+      'stroke-width': '1.2'
+    }));
+
+    this.editingPoints.forEach((pt, i) => {
+      const circle = createEl('circle', {
+        cx: pt.y,
+        cy: -pt.z,
+        r: 1.8,
+        fill: '#FF8000',
+        stroke: '#FFFFFF',
+        'stroke-width': '0.4'
+      });
+      svg.appendChild(circle);
+    });
+  }
+
+  setupStationEditorModal() {
+    const btnClose = document.getElementById('btn-close-station-editor');
+    const modal = document.getElementById('modal-station-editor');
+    if (btnClose && modal) {
+      btnClose.addEventListener('click', () => modal.classList.add('hidden'));
+    }
+
+    const btnAdd = document.getElementById('btn-cad-add-point');
+    if (btnAdd) {
+      btnAdd.addEventListener('click', () => {
+        if (!this.editingPoints || this.editingPoints.length === 0) return;
+        const last = this.editingPoints[this.editingPoints.length - 1];
+        const first = this.editingPoints[0];
+        const newPt = { y: Math.round((last.y + first.y) / 2), z: Math.round((last.z + first.z) / 2) };
+        this.editingPoints.push(newPt);
+        this.renderCADEditor();
+      });
+    }
+
+    const btnClear = document.getElementById('btn-cad-clear');
+    if (btnClear) {
+      btnClear.addEventListener('click', () => {
+        this.editingPoints = [
+          { y: -25, z: -15 },
+          { y: 25, z: -15 },
+          { y: 25, z: 15 },
+          { y: -25, z: 15 }
+        ];
+        const sel = document.getElementById('cad-select-template');
+        if (sel) sel.value = 'custom';
+        this.renderCADEditor();
+      });
+    }
+
+    const selectTemplate = document.getElementById('cad-select-template');
+    if (selectTemplate) {
+      selectTemplate.addEventListener('change', (e) => {
+        if (!this.editingStation) return;
+        this.editingStation.shape = e.target.value;
+        const pts = this.geometry.getStationPerimeter2D(this.editingStation, 16);
+        this.editingPoints = pts.slice(0, pts.length - 1).map(p => ({ y: Number(p.y.toFixed(1)), z: Number(p.z.toFixed(1)) }));
+        this.renderCADEditor();
+      });
+    }
+
+    const svg = document.getElementById('cad-svg-editor');
+    if (svg) {
+      svg.addEventListener('click', (e) => {
+        if (!this.editingPoints) return;
+        const rect = svg.getBoundingClientRect();
+        const normX = (e.clientX - rect.left) / rect.width;
+        const normY = (e.clientY - rect.top) / rect.height;
+        let yCoord = -80 + normX * 160;
+        let zCoord = -( -80 + normY * 160 );
+        
+        const snap = document.getElementById('cad-snap-mm')?.checked !== false;
+        if (snap) {
+          yCoord = Math.round(yCoord);
+          zCoord = Math.round(zCoord);
+        } else {
+          yCoord = Number(yCoord.toFixed(1));
+          zCoord = Number(zCoord.toFixed(1));
+        }
+
+        this.editingPoints.push({ y: yCoord, z: zCoord });
+        this.renderCADEditor();
+      });
+    }
+
+    const btnApply = document.getElementById('btn-cad-apply');
+    if (btnApply) {
+      btnApply.addEventListener('click', () => {
+        if (!this.editingStation) return;
+        this.editingStation.customPoints = JSON.parse(JSON.stringify(this.editingPoints));
+        this.editingStation.shape = 'custom';
+        modal.classList.add('hidden');
+        this.renderLoftStationsUI();
+        this.recalculateAndRender();
+      });
+    }
   }
 
   /**

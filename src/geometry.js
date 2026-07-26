@@ -263,9 +263,194 @@ export class PaperAlfaGeometry {
         cuts,
         mountainFolds: [],
         valleyFolds: [],
-        tabs: []
+        tabs: [],
+        markings: [
+          { x1: -5, y1: -5, x2: 5, y2: 5, type: 'centroid-x', color: '#FF3B30', width: 0.5 },
+          { x1: -5, y1: 5, x2: 5, y2: -5, type: 'centroid-x', color: '#FF3B30', width: 0.5 },
+          { x1: -6, y1: 0, x2: 6, y2: 0, type: 'axis-plus', color: '#0066CC', width: 0.4 },
+          { x1: 0, y1: -6, x2: 0, y2: 6, type: 'axis-plus', color: '#0066CC', width: 0.4 }
+        ]
       },
       boundingBox: { minX: -radius, maxX: radius, minY: -radius, maxY: radius, width: diameter, height: diameter }
+    };
+  }
+
+  sampleEquidistantPolyline(rawVertices, N) {
+    if (!rawVertices || rawVertices.length < 3) return [];
+    const pts = [...rawVertices, rawVertices[0]];
+    const cumLen = [0];
+    for (let i = 0; i < pts.length - 1; i++) {
+      const d = Math.hypot(pts[i+1].y - pts[i].y, pts[i+1].z - pts[i].z);
+      cumLen.push(cumLen[cumLen.length - 1] + d);
+    }
+    const totalLen = cumLen[cumLen.length - 1];
+    if (totalLen < 1e-6) return pts.slice(0, N + 1);
+
+    const res = [];
+    for (let i = 0; i <= N; i++) {
+      const target = (i / N) * totalLen;
+      let idx = 0;
+      while (idx < cumLen.length - 2 && cumLen[idx + 1] < target) {
+        idx++;
+      }
+      const l0 = cumLen[idx];
+      const l1 = cumLen[idx + 1];
+      const t = (l1 - l0) > 1e-6 ? (target - l0) / (l1 - l0) : 0;
+      res.push({
+        y: pts[idx].y + t * (pts[idx+1].y - pts[idx].y),
+        z: pts[idx].z + t * (pts[idx+1].z - pts[idx].z)
+      });
+    }
+    return res;
+  }
+
+  calculateShapeCentroid(vertices2D) {
+    let A = 0;
+    let Cy = 0;
+    let Cz = 0;
+    const n = vertices2D.length;
+    for (let i = 0; i < n; i++) {
+      const p1 = vertices2D[i];
+      const p2 = vertices2D[(i + 1) % n];
+      const cross = (p1.y * p2.z - p2.y * p1.z);
+      A += cross;
+      Cy += (p1.y + p2.y) * cross;
+      Cz += (p1.z + p2.z) * cross;
+    }
+    A *= 0.5;
+    if (Math.abs(A) < 1e-6) {
+      const sum = vertices2D.reduce((acc, p) => ({ y: acc.y + p.y, z: acc.z + p.z }), { y: 0, z: 0 });
+      return { y: sum.y / n, z: sum.z / n, area: 0 };
+    }
+    Cy /= (6 * A);
+    Cz /= (6 * A);
+    return { y: Cy, z: Cz, area: Math.abs(A) };
+  }
+
+  getStationPerimeter2D(station, N = 32) {
+    const shape = station.shape || 'circle';
+    const cz = station.z || 0;
+    const cy = station.yOffset || 0;
+    const raw = [];
+
+    if (shape === 'ellipse') {
+      const rx = (station.w || station.d || 60) / 2;
+      const ry = (station.h || station.d || 40) / 2;
+      for (let i = 0; i < N; i++) {
+        const phi = (i / N) * 2 * Math.PI - Math.PI;
+        raw.push({ y: cy + rx * Math.cos(phi), z: cz + ry * Math.sin(phi) });
+      }
+      return this.sampleEquidistantPolyline(raw, N);
+    } else if (shape === 'rect') {
+      const w = station.w || 60;
+      const h = station.h || 40;
+      raw.push({ y: cy - w/2, z: cz - h/2 });
+      raw.push({ y: cy + w/2, z: cz - h/2 });
+      raw.push({ y: cy + w/2, z: cz + h/2 });
+      raw.push({ y: cy - w/2, z: cz + h/2 });
+      return this.sampleEquidistantPolyline(raw, N);
+    } else if (shape === 'rounded_rect') {
+      const w = station.w || 60;
+      const h = station.h || 40;
+      const r = Math.min(station.r || 10, w/2, h/2);
+      const steps = 8;
+      const corners = [
+        { cx: cy + w/2 - r, cy: cz - h/2 + r, startAngle: -Math.PI/2, endAngle: 0 },
+        { cx: cy + w/2 - r, cy: cz + h/2 - r, startAngle: 0, endAngle: Math.PI/2 },
+        { cx: cy - w/2 + r, cy: cz + h/2 - r, startAngle: Math.PI/2, endAngle: Math.PI },
+        { cx: cy - w/2 + r, cy: cz - h/2 + r, startAngle: Math.PI, endAngle: Math.PI*1.5 }
+      ];
+      corners.forEach(c => {
+        for (let i = 0; i < steps; i++) {
+          const a = c.startAngle + (i / steps) * (c.endAngle - c.startAngle);
+          raw.push({ y: c.cx + r * Math.cos(a), z: c.cy + r * Math.sin(a) });
+        }
+      });
+      return this.sampleEquidistantPolyline(raw, N);
+    } else if (shape === 'polygon') {
+      const d = station.d || 60;
+      const sides = Math.max(3, parseInt(station.sides) || 6);
+      const rad = d / 2;
+      for (let i = 0; i < sides; i++) {
+        const phi = (i / sides) * 2 * Math.PI - Math.PI / 2;
+        raw.push({ y: cy + rad * Math.cos(phi), z: cz + rad * Math.sin(phi) });
+      }
+      return this.sampleEquidistantPolyline(raw, N);
+    } else if (shape === 'airfoil') {
+      const c = station.w || 80;
+      const t = (station.h || 12) / 100;
+      const pointsTop = [];
+      const pointsBot = [];
+      const m = 20;
+      for (let i = 0; i < m; i++) {
+        const xc = (1 - Math.cos((i / (m - 1)) * Math.PI)) / 2;
+        const yt = 5 * t * c * (0.2969 * Math.sqrt(xc) - 0.1260 * xc - 0.3516 * xc*xc + 0.2843 * Math.pow(xc, 3) - 0.1015 * Math.pow(xc, 4));
+        pointsTop.push({ y: cy - c/2 + xc * c, z: cz + yt });
+        pointsBot.unshift({ y: cy - c/2 + xc * c, z: cz - yt });
+      }
+      return this.sampleEquidistantPolyline([...pointsTop, ...pointsBot.slice(1, -1)], N);
+    } else if (shape === 'custom') {
+      if (station.customPoints && station.customPoints.length >= 3) {
+        const pts = station.customPoints.map(p => ({ y: cy + (p.y || 0), z: cz + (p.z || 0) }));
+        return this.sampleEquidistantPolyline(pts, N);
+      }
+    }
+
+    // Default: 'circle'
+    const R = (station.d || 60) / 2;
+    for (let i = 0; i < N; i++) {
+      const phi = (i / N) * 2 * Math.PI - Math.PI;
+      raw.push({ y: cy + R * Math.cos(phi), z: cz + R * Math.sin(phi) });
+    }
+    return this.sampleEquidistantPolyline(raw, N);
+  }
+
+  getStationPerimeter3D(station, xPos, N = 32) {
+    const pts2D = this.getStationPerimeter2D(station, N);
+    return pts2D.map(p => ({ x: xPos, y: p.y, z: p.z }));
+  }
+
+  buildStationCapPiece(station, index, tabHeight) {
+    const pts = this.getStationPerimeter2D(station, 64);
+    const cuts = [];
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p1 = { x: pts[i].y, y: -pts[i].z };
+      const p2 = { x: pts[i+1].y, y: -pts[i+1].z };
+      cuts.push({ x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y, type: 'cut' });
+      minX = Math.min(minX, p1.x, p2.x);
+      maxX = Math.max(maxX, p1.x, p2.x);
+      minY = Math.min(minY, p1.y, p2.y);
+      maxY = Math.max(maxY, p1.y, p2.y);
+    }
+
+    const centroid = this.calculateShapeCentroid(pts);
+    const cx = centroid.y;
+    const cy = -centroid.z;
+    const size = 5;
+
+    const markings = [
+      { x1: cx - size, y1: cy - size, x2: cx + size, y2: cy + size, type: 'centroid-x', color: '#FF3B30', width: 0.5 },
+      { x1: cx - size, y1: cy + size, x2: cx + size, y2: cy - size, type: 'centroid-x', color: '#FF3B30', width: 0.5 },
+      { x1: -6, y1: 0, x2: 6, y2: 0, type: 'axis-plus', color: '#0066CC', width: 0.4 },
+      { x1: 0, y1: -6, x2: 0, y2: 6, type: 'axis-plus', color: '#0066CC', width: 0.4 }
+    ];
+
+    const shapeName = station.shape ? station.shape.toUpperCase() : 'CIRCLE';
+    return {
+      id: `loft-cap-${index}`,
+      name: `Cuaderna ${index} (${shapeName}, X=${station.x}mm)`,
+      width: (maxX - minX) + 4,
+      height: (maxY - minY) + 4,
+      centerOffset: { x: 0, y: 0 },
+      lines: {
+        cuts,
+        mountainFolds: [],
+        valleyFolds: [],
+        tabs: [],
+        markings
+      },
+      boundingBox: { minX, maxX, minY, maxY, width: (maxX - minX), height: (maxY - minY) }
     };
   }
 
@@ -652,15 +837,11 @@ export class PaperAlfaGeometry {
     const tabH = (params.tabHeight !== undefined && !isNaN(params.tabHeight)) ? Number(params.tabHeight) : 6;
     const margin = parseFloat(params.marginSecurity) || 5;
 
-    const R1 = d1 / 2;
-    const R2 = d2 / 2;
+    const s1 = params.station1 || { d: d1, z: z1, shape: 'circle' };
+    const s2 = params.station2 || { d: d2, z: z2, shape: 'circle' };
     const N = 32;
-    const pts3D_1 = [], pts3D_2 = [];
-    for (let i = 0; i <= N; i++) {
-      const phi = (i / N) * 2 * Math.PI - Math.PI;
-      pts3D_1.push({ x: 0, y: R1 * Math.cos(phi), z: z1 + R1 * Math.sin(phi) });
-      pts3D_2.push({ x: L, y: R2 * Math.cos(phi), z: z2 + R2 * Math.sin(phi) });
-    }
+    const pts3D_1 = this.getStationPerimeter3D(s1, 0, N);
+    const pts3D_2 = this.getStationPerimeter3D(s2, L, N);
 
     const V1 = [{ x: 0, y: 0 }];
     const G0 = Math.hypot(pts3D_2[0].x - pts3D_1[0].x, pts3D_2[0].y - pts3D_1[0].y, pts3D_2[0].z - pts3D_1[0].z);
@@ -1131,8 +1312,10 @@ export class PaperAlfaGeometry {
       const dz = (s2.z || 0) - (s1.z || 0);
 
       const p = {
-        d1: s1.d,
-        d2: s2.d,
+        station1: s1,
+        station2: s2,
+        d1: s1.d || s1.w || 60,
+        d2: s2.d || s2.w || 60,
         height: length,
         z1: s1.z || 0,
         z2: s2.z || 0,
@@ -1144,12 +1327,14 @@ export class PaperAlfaGeometry {
       };
 
       let segData;
-      if (Math.abs(dz) >= 0.01) {
+      const isCircle1 = (!s1.shape || s1.shape === 'circle') && !s1.yOffset;
+      const isCircle2 = (!s2.shape || s2.shape === 'circle') && !s2.yOffset;
+
+      if (!isCircle1 || !isCircle2 || Math.abs(dz) >= 0.01) {
         segData = this.calculateEccentricSegment(p);
       } else if (Math.abs(p.d1 - p.d2) < 0.01) {
         segData = this.calculateCylinder(p);
       } else if (p.d2 === 0 || p.d1 === 0) {
-        // Cono completo, d1 debe ser el mayor
         const dMayor = Math.max(p.d1, p.d2);
         segData = this.calculateCone({ ...p, d1: dMayor });
       } else {
@@ -1171,9 +1356,8 @@ export class PaperAlfaGeometry {
     // Generar Cuadernas estructurales
     if (incCaps) {
       stations.forEach((s, i) => {
-        if (s.d > 0) {
-          const zStr = (s.z && Math.abs(s.z) >= 0.01) ? `, Z=${s.z}` : '';
-          const cap = this.buildCapPiece(s.d / 2, `Cuaderna ${i+1} (X=${s.x}${zStr}, D=${s.d})`, `loft-cap-${i+1}`, tabH);
+        if ((s.d && s.d > 0) || (s.w && s.w > 0) || s.shape === 'custom') {
+          const cap = this.buildStationCapPiece(s, i+1, tabH);
           parts.push(cap);
         }
       });

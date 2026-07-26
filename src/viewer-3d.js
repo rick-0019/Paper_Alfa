@@ -1,3 +1,5 @@
+import { PaperAlfaGeometry } from './geometry.js';
+
 /**
  * PAPER ALFA - 3D Three.js Interactive Viewer (v1.0)
  * Visualizador y verificador 3D en tiempo real con sombreado tipo papel Bristol y wireframe CAD
@@ -6,6 +8,7 @@
 export class PaperAlfaViewer3D {
   constructor(canvasElementId) {
     this.canvas = document.getElementById(canvasElementId);
+    this.geom = new PaperAlfaGeometry();
     this.scene = null;
     this.camera = null;
     this.renderer = null;
@@ -139,7 +142,6 @@ export class PaperAlfaViewer3D {
     if (type === 'loft' && params.stations && params.stations.length > 0) {
       const stations = params.stations;
       
-      // Mover el centro del loft al origen para rotación elegante
       const minX = stations[0].x;
       const maxX = stations[stations.length - 1].x;
       const centerX = (minX + maxX) / 2;
@@ -148,46 +150,87 @@ export class PaperAlfaViewer3D {
       const minZ = Math.min(...zs);
       const maxZ = Math.max(...zs);
       const centerZ = (minZ + maxZ) / 2;
+      const N = 64;
 
+      // 1. Dibujar cada estación 2D y sus marcadores técnicos de Centroide X y Eje +
+      stations.forEach((s, idx) => {
+        const pts2D = this.geom.getStationPerimeter2D(s, N);
+        const pts3D = pts2D.map(p => new window.THREE.Vector3(s.x - centerX, (p.z + (s.z || 0)) - centerZ, p.y));
+
+        // Borde de la estación en naranja técnico
+        const geomLoop = new window.THREE.BufferGeometry().setFromPoints([...pts3D, pts3D[0]]);
+        const matLoop = new window.THREE.LineBasicMaterial({ color: 0xFF8000, linewidth: 2 });
+        this.mesh.add(new window.THREE.Line(geomLoop, matLoop));
+
+        // Cruz técnica Roja X en Centroide
+        const centroid = this.geom.calculateShapeCentroid(pts2D);
+        const cy = s.x - centerX;
+        const cz = (centroid.z + (s.z || 0)) - centerZ;
+        const cx = centroid.y;
+        const sz = 4;
+        const ptsX = [
+          new window.THREE.Vector3(cy, cz - sz, cx - sz), new window.THREE.Vector3(cy, cz + sz, cx + sz),
+          new window.THREE.Vector3(cy, cz + sz, cx - sz), new window.THREE.Vector3(cy, cz - sz, cx + sz)
+        ];
+        const geomX = new window.THREE.BufferGeometry().setFromPoints(ptsX);
+        const matX = new window.THREE.LineBasicMaterial({ color: 0xFF3B30, linewidth: 2 });
+        this.mesh.add(new window.THREE.LineSegments(geomX, matX));
+
+        // Cruz técnica Azul + de Eje aeronáutico en (0,0)
+        const az = -centerZ;
+        const szAx = 5;
+        const ptsAx = [
+          new window.THREE.Vector3(cy, az - szAx, 0), new window.THREE.Vector3(cy, az + szAx, 0),
+          new window.THREE.Vector3(cy, az, -szAx), new window.THREE.Vector3(cy, az, szAx)
+        ];
+        const geomAx = new window.THREE.BufferGeometry().setFromPoints(ptsAx);
+        const matAx = new window.THREE.LineBasicMaterial({ color: 0x0066CC, linewidth: 1.5 });
+        this.mesh.add(new window.THREE.LineSegments(geomAx, matAx));
+      });
+
+      // 2. Construir la malla reglada 3D para cada segmento entre estaciones
       for (let i = 0; i < stations.length - 1; i++) {
         const s1 = stations[i];
         const s2 = stations[i+1];
-        const h = Math.abs(s2.x - s1.x);
-        if (h <= 0.01) continue;
-        
-        // En THREE.CylinderGeometry el eje es Y, por lo que rotaremos 90 grados
-        const rBot = s1.d / 2;
-        const rTop = s2.d / 2;
-        const z1 = s1.z || 0;
-        const z2 = s2.z || 0;
-        const dz = z2 - z1;
-        
-        const geo = new window.THREE.CylinderGeometry(rTop, rBot, h, 64, 1, false);
+        if (Math.abs(s2.x - s1.x) <= 0.01) continue;
 
-        // Si hay descentrado en Z, cizallar (shear) los vértices del cilindro
-        if (Math.abs(dz) > 0.001) {
-          const pos = geo.attributes.position;
-          for (let j = 0; j < pos.count; j++) {
-            const y = pos.getY(j);
-            const t = (y / h) + 0.5; // 0 en s1 (base), 1 en s2 (tapa)
-            pos.setX(j, pos.getX(j) - (t - 0.5) * dz);
-          }
-          geo.computeVertexNormals();
+        const pts1 = this.geom.getStationPerimeter2D(s1, N);
+        const pts2 = this.geom.getStationPerimeter2D(s2, N);
+
+        const positions = [];
+        const indices = [];
+        const v1 = pts1.map(p => new window.THREE.Vector3(s1.x - centerX, (p.z + (s1.z || 0)) - centerZ, p.y));
+        const v2 = pts2.map(p => new window.THREE.Vector3(s2.x - centerX, (p.z + (s2.z || 0)) - centerZ, p.y));
+
+        for (let j = 0; j < N; j++) {
+          positions.push(v1[j].x, v1[j].y, v1[j].z);
+          positions.push(v2[j].x, v2[j].y, v2[j].z);
         }
+
+        for (let j = 0; j < N; j++) {
+          const next = (j + 1) % N;
+          const idxA = j * 2;
+          const idxB = j * 2 + 1;
+          const idxC = next * 2;
+          const idxD = next * 2 + 1;
+
+          // Triángulos en orden correcto de normales (hacia el exterior)
+          indices.push(idxA, idxC, idxB);
+          indices.push(idxB, idxC, idxD);
+        }
+
+        const geo = new window.THREE.BufferGeometry();
+        geo.setAttribute('position', new window.THREE.Float32BufferAttribute(positions, 3));
+        geo.setIndex(indices);
+        geo.computeVertexNormals();
 
         const mat = (i % 2 === 0) ? material : materialAlt;
         const segMesh = new window.THREE.Mesh(geo, mat);
-        
-        // Posicionar en el eje X y Z
-        const midX = (s1.x + s2.x) / 2;
-        const midZ = (z1 + z2) / 2;
-        segMesh.position.set(midX - centerX, midZ - centerZ, 0);
-        segMesh.rotation.z = -Math.PI / 2; // Acostar el cilindro sobre el eje X
 
         const edges = new window.THREE.EdgesGeometry(geo, 15);
         const wireMesh = new window.THREE.LineSegments(edges, lineMaterial);
         segMesh.add(wireMesh);
-        
+
         this.mesh.add(segMesh);
       }
     } else {

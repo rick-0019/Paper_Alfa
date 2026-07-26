@@ -180,13 +180,15 @@
               <button id="preset-loft-nozzle" class="btn-preset">Tobera Multietapa</button>
               <button id="preset-loft-zeppelin" class="btn-preset">Dirigible / Zeppelin</button>
               <button id="preset-loft-sduct" class="btn-preset" style="border-color: var(--accent-cyan); color: var(--accent-cyan);">Conducto "S" / Codo (Z)</button>
+              <button id="preset-loft-intake" class="btn-preset" style="border-color: #A855F7; color: #A855F7;">Toma Cuadrado ➔ Círculo</button>
+              <button id="preset-loft-oval" class="btn-preset" style="border-color: #EC4899; color: #EC4899;">Fuselaje Ovalado / Aplanado</button>
             </div>
           </div>
 
           <div class="form-group">
             <label style="display: flex; justify-content: space-between; align-items: center;">
               <span>Estaciones (Cuadernas)</span>
-              <span style="font-size: 11px; font-weight: normal; color: var(--text-muted);">(X, Z, D) en mm</span>
+              <span style="font-size: 11px; font-weight: normal; color: var(--text-muted);">(X, Z, Forma) en mm</span>
             </label>
             <div id="loft-stations-container" style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px; max-height: 300px; overflow-y: auto; padding-right: 5px;">
               <!-- Estaciones renderizadas dinámicamente -->
@@ -311,6 +313,68 @@
       </div>
       <div class="modal-body">
         <pre id="json-output"></pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL EDITOR CAD 2D DE CUADERNA (MILÍMETROS) -->
+  <div id="modal-station-editor" class="modal-overlay hidden">
+    <div class="modal-card modal-card-xl">
+      <div class="modal-header">
+        <h3>✏️ Editor CAD 2D de Cuaderna • Precisión en Milímetros</h3>
+        <button id="btn-close-station-editor" class="btn-close">&times;</button>
+      </div>
+      <div class="modal-body modal-body-cad">
+        <div class="cad-sidebar">
+          <div class="cad-section">
+            <h4>1. Forma Base / Plantilla</h4>
+            <select id="cad-select-template" class="input-field">
+              <option value="custom">Personalizada (Dibujo Libre)</option>
+              <option value="circle">Círculo</option>
+              <option value="ellipse">Elipse</option>
+              <option value="rect">Rectángulo</option>
+              <option value="rounded_rect">Rectángulo Redondeado</option>
+              <option value="polygon">Polígono (Hexágono/Octógono)</option>
+              <option value="airfoil">Perfil Alar NACA</option>
+            </select>
+          </div>
+          <div class="cad-section">
+            <h4>2. Coordenadas de Vértices (Y, Z mm)</h4>
+            <div class="cad-points-table-container">
+              <table class="cad-points-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Y (mm)</th>
+                    <th>Z (mm)</th>
+                    <th>×</th>
+                  </tr>
+                </thead>
+                <tbody id="cad-points-tbody"></tbody>
+              </table>
+            </div>
+            <button id="btn-cad-add-point" class="btn-preset" style="width: 100%; margin-top: 8px;">+ Añadir Punto</button>
+          </div>
+          <div class="cad-section cad-stats-box">
+            <div><strong>Centroide (X Roja):</strong> <span id="cad-stat-centroid" style="color: #FF3B30;">Y=0.0, Z=0.0</span></div>
+            <div><strong>Eje Fuselaje (+ Azul):</strong> <span style="color: #0066CC;">Y=0.0, Z=0.0</span></div>
+            <div><strong>Área Sección:</strong> <span id="cad-stat-area">0 cm²</span></div>
+          </div>
+          <div class="cad-footer-actions">
+            <button id="btn-cad-apply" class="btn-action">✔ Aplicar a Cuaderna</button>
+          </div>
+        </div>
+        <div class="cad-canvas-container">
+          <div class="cad-toolbar">
+            <label class="checkbox-label" style="font-size: 11px; display: flex; align-items: center; gap: 4px;">
+              <input type="checkbox" id="cad-snap-mm" checked /> Ajustar a grilla 1 mm
+            </label>
+            <button id="btn-cad-clear" class="btn-preset" style="font-size: 11px;">🗑️ Limpiar Dibujo</button>
+          </div>
+          <svg id="cad-svg-editor" viewBox="-80 -80 160 160" xmlns="http://www.w3.org/2000/svg">
+            <!-- Grilla, cruz central y dibujo de polilínea -->
+          </svg>
+        </div>
       </div>
     </div>
   </div>
