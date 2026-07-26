@@ -639,22 +639,39 @@ input[type="number"] {
 }
 .cad-points-table th {
   background: var(--bg-panel);
-  padding: 6px;
+  padding: 6px 2px;
   border-bottom: 1px solid var(--border-subtle);
   color: var(--text-muted);
 }
 .cad-points-table td {
-  padding: 4px;
+  padding: 4px 2px;
   border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.cad-points-table th:nth-child(1),
+.cad-points-table td:nth-child(1) {
+  width: 25px;
+}
+.cad-points-table th:nth-child(2),
+.cad-points-table td:nth-child(2),
+.cad-points-table th:nth-child(3),
+.cad-points-table td:nth-child(3) {
+  width: 110px;
+}
+.cad-points-table th:nth-child(4),
+.cad-points-table td:nth-child(4) {
+  width: 30px;
 }
 .cad-points-table input {
   width: 100%;
+  min-width: 65px;
   background: var(--bg-panel);
   border: 1px solid var(--border-subtle);
   color: var(--text-primary);
   text-align: center;
   border-radius: 4px;
-  padding: 3px;
+  padding: 4px 2px;
+  font-size: 13px;
+  font-weight: 700;
 }
 .cad-points-table tbody tr {
   cursor: pointer;

@@ -567,6 +567,49 @@ class PaperAlfaApp {
     }
   }
 
+  applySymmetry() {
+    if (!this.editingPoints || this.editingPoints.length < 2) return;
+    
+    // 1. Detectar si el usuario dibujó mayormente en el lado izquierdo (Y <= 0) o derecho (Y >= 0)
+    const maxPos = Math.max(...this.editingPoints.map(p => p.y));
+    const minNeg = Math.min(...this.editingPoints.map(p => p.y));
+    const useLeftHalf = (Math.abs(minNeg) > maxPos && maxPos <= 0.5);
+    
+    let sourceHalf;
+    if (useLeftHalf) {
+      sourceHalf = this.editingPoints.filter(p => p.y <= 0.1).sort((a, b) => b.z - a.z);
+    } else {
+      sourceHalf = this.editingPoints.filter(p => p.y >= -0.1).sort((a, b) => b.z - a.z);
+    }
+
+    if (sourceHalf.length < 2) return;
+
+    // Lado derecho: de arriba hacia abajo (Z descendente)
+    const rightSide = useLeftHalf
+      ? sourceHalf.map(p => ({ y: Number(Math.abs(p.y).toFixed(1)), z: p.z })).sort((a, b) => b.z - a.z)
+      : sourceHalf.map(p => ({ y: Number(p.y.toFixed(1)), z: p.z })).sort((a, b) => b.z - a.z);
+      
+    // Lado izquierdo: de abajo hacia arriba (Z ascendente)
+    const leftSide = useLeftHalf
+      ? sourceHalf.map(p => ({ y: Number((-Math.abs(p.y)).toFixed(1)), z: p.z })).sort((a, b) => a.z - b.z)
+      : sourceHalf.map(p => ({ y: Number((-Math.abs(p.y)).toFixed(1)), z: p.z })).sort((a, b) => a.z - b.z);
+
+    const combined = [];
+    const addUnique = (pt) => {
+      const isDup = combined.some(existing => Math.hypot(existing.y - pt.y, existing.z - pt.z) < 0.2);
+      if (!isDup) combined.push(pt);
+    };
+
+    rightSide.forEach(addUnique);
+    leftSide.forEach(addUnique);
+
+    if (combined.length >= 3) {
+      this.editingPoints = combined;
+      this.selectedCadPointIndex = 0;
+      this.renderCADEditor(true);
+    }
+  }
+
   selectCadPoint(i) {
     if (!this.editingPoints || i < 0 || i >= this.editingPoints.length) return;
     this.selectedCadPointIndex = i;
@@ -811,19 +854,7 @@ class PaperAlfaApp {
 
     const btnSymmetry = document.getElementById('btn-cad-symmetry');
     if (btnSymmetry) {
-      btnSymmetry.addEventListener('click', () => {
-        if (!this.editingPoints) return;
-        const rightHalf = this.editingPoints.filter(p => p.y >= -0.01).sort((a, b) => b.z - a.z);
-        if (rightHalf.length >= 2) {
-          const leftHalf = rightHalf.slice().reverse().map(p => ({ y: -p.y, z: p.z }));
-          const combined = [...rightHalf];
-          leftHalf.forEach(lp => {
-            if (Math.abs(lp.y) > 0.01) combined.push(lp);
-          });
-          this.editingPoints = combined;
-          this.renderCADEditor(true);
-        }
-      });
+      btnSymmetry.addEventListener('click', () => this.applySymmetry());
     }
 
     const btnCenter = document.getElementById('btn-cad-center');
