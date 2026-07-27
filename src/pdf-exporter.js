@@ -11,6 +11,57 @@ export class PaperAlfaPdfExporter {
   }
 
   /**
+   * Sincroniza y re-asigna piezas arrastradas a sus páginas A4 correspondientes, eliminando páginas vacías
+   */
+  syncPartsToPages(modelData) {
+    if (!modelData || !modelData.pages) return;
+    const allParts = [];
+    modelData.pages.forEach(page => {
+      if (page && page.parts) {
+        allParts.push(...page.parts);
+      }
+    });
+    if (allParts.length === 0) return;
+
+    const spacing = 25;
+    const pageH = 297;
+    const maxPageIndex = Math.max(
+      0,
+      ...allParts.map(p => {
+        if (!p.layout) return 0;
+        const y = p.layout.y || 0;
+        return y >= pageH ? Math.floor(y / (pageH + spacing)) : (p.layout.pageIndex || 0);
+      })
+    );
+
+    const newPages = [];
+    for (let i = 0; i <= maxPageIndex; i++) {
+      newPages.push({ pageNum: i + 1, parts: [], overflow: false });
+    }
+
+    allParts.forEach(part => {
+      if (!part.layout) part.layout = { x: 105, y: 148, rotation: 0, pageIndex: 0 };
+      let idx = part.layout.pageIndex || 0;
+      if (part.layout.y >= pageH) {
+        idx = Math.floor(part.layout.y / (pageH + spacing));
+        part.layout.y = part.layout.y % (pageH + spacing);
+      }
+      if (!newPages[idx]) {
+        newPages[idx] = { pageNum: idx + 1, parts: [], overflow: false };
+      }
+      part.layout.pageIndex = idx;
+      newPages[idx].parts.push(part);
+    });
+
+    const nonEmptyPages = newPages.filter(p => p && p.parts && p.parts.length > 0);
+    if (nonEmptyPages.length > 0) {
+      nonEmptyPages.forEach((p, idx) => { p.pageNum = idx + 1; });
+      modelData.pages = nonEmptyPages;
+      modelData.pageCount = nonEmptyPages.length;
+    }
+  }
+
+  /**
    * Genera y descarga el PDF vectorial a escala real 1:1
    * @param {Object} modelData - Objeto resultante de PaperAlfaGeometry
    * @param {Object} options - { showRuler, showTitleBlock, marginSecurity }
@@ -32,6 +83,7 @@ export class PaperAlfaPdfExporter {
     const showRuler = options.showRuler !== false;
     const showTitleBlock = options.showTitleBlock !== false;
 
+    this.syncPartsToPages(modelData);
     const pages = modelData.pages || [];
 
     pages.forEach((page, idx) => {

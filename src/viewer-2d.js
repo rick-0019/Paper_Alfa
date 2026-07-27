@@ -130,36 +130,60 @@ export class PaperAlfaViewer2D {
     if (this.onLayoutChanged) this.onLayoutChanged(this.selectedPart);
   }
 
-  autoPackCurrentPage(modelData, pageIndex = 0) {
+  autoPackCurrentPage(modelData, pageIndex = 'all') {
     if (!modelData || !modelData.pages) return;
-    const pages = modelData.pages;
     const margin = parseFloat(modelData.parameters?.marginSecurity) || 5;
-    
-    const targetPages = (pageIndex === 'all' || pageIndex === -1) ? pages : [pages[pageIndex] || pages[0]];
-    
-    targetPages.forEach(page => {
-      if (!page || !page.parts) return;
-      let curX = margin + 25;
-      let curY = margin + 30;
-      let maxRowH = 0;
 
-      page.parts.forEach(part => {
-        const w = part.width || 60;
-        const h = part.height || 60;
-        if (curX + w / 2 > 210 - margin - 20) {
-          curX = margin + 25;
-          curY += maxRowH + 20;
-          maxRowH = 0;
-        }
-        if (!part.layout) part.layout = {};
-        part.layout.x = Math.round(curX + w / 2);
-        part.layout.y = Math.round(curY + h / 2);
-        curX += w + 15;
-        if (h > maxRowH) maxRowH = h;
-      });
+    const allParts = [];
+    modelData.pages.forEach(page => {
+      if (page && page.parts) {
+        allParts.push(...page.parts);
+      }
     });
 
-    this.render(modelData, pageIndex);
+    const newPages = [{ pageNum: 1, parts: [], overflow: false }];
+    let curPageIdx = 0;
+    let curX = margin + 15;
+    let curY = margin + 25;
+    let rowMaxH = 0;
+
+    const getDim = (part) => {
+      const rot = part.layout && part.layout.rotation ? ((part.layout.rotation % 360 + 360) % 360) : 0;
+      const isRotated90 = (rot === 90 || rot === 270);
+      return {
+        w: isRotated90 ? (part.height || 60) : (part.width || 60),
+        h: isRotated90 ? (part.width || 60) : (part.height || 60)
+      };
+    };
+
+    allParts.forEach(part => {
+      const dim = getDim(part);
+      if (curX + dim.w / 2 > 210 - margin - 15) {
+        curX = margin + 15;
+        curY += rowMaxH + 15;
+        rowMaxH = 0;
+      }
+      if (curY + dim.h / 2 > 297 - margin - 15 && newPages[curPageIdx].parts.length > 0) {
+        curPageIdx++;
+        newPages.push({ pageNum: curPageIdx + 1, parts: [], overflow: false });
+        curX = margin + 15;
+        curY = margin + 25;
+        rowMaxH = 0;
+      }
+
+      if (!part.layout) part.layout = {};
+      part.layout.pageIndex = curPageIdx;
+      part.layout.x = Math.round(curX + dim.w / 2);
+      part.layout.y = Math.round(curY + dim.h / 2);
+
+      newPages[curPageIdx].parts.push(part);
+      curX += dim.w + 15;
+      if (dim.h > rowMaxH) rowMaxH = dim.h;
+    });
+
+    modelData.pages = newPages;
+    modelData.pageCount = newPages.length;
+    this.render(modelData, 'all');
     if (this.onLayoutChanged) this.onLayoutChanged();
   }
 

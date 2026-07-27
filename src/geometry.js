@@ -551,9 +551,51 @@ export class PaperAlfaGeometry {
   }
 
   /**
+   * Centra la geometría de cualquier pieza en (0, 0) según su bounding box
+   */
+  centerPieceGeometry(part) {
+    if (!part || !part.boundingBox) return part;
+    const box = part.boundingBox;
+    const cx = (box.minX + box.maxX) / 2;
+    const cy = (box.minY + box.maxY) / 2;
+    if (Math.abs(cx) < 0.001 && Math.abs(cy) < 0.001) return part;
+
+    const shiftLine = (line) => {
+      if (line.isArc) {
+        line.cx -= cx;
+        line.cy -= cy;
+      } else {
+        if (line.x1 !== undefined) line.x1 -= cx;
+        if (line.y1 !== undefined) line.y1 -= cy;
+        if (line.x2 !== undefined) line.x2 -= cx;
+        if (line.y2 !== undefined) line.y2 -= cy;
+      }
+    };
+
+    if (part.lines) {
+      ['cuts', 'mountainFolds', 'valleyFolds', 'markings', 'tabs'].forEach(key => {
+        (part.lines[key] || []).forEach(shiftLine);
+      });
+    }
+
+    part.boundingBox = {
+      minX: box.minX - cx,
+      maxX: box.maxX - cx,
+      minY: box.minY - cy,
+      maxY: box.maxY - cy,
+      width: box.width,
+      height: box.height,
+      centerOffset: { x: 0, y: 0 }
+    };
+    return part;
+  }
+
+  /**
    * Empaqueta piezas en hojas A4 (210 x 297 mm) manteniendo escala real 1:1 en mm
    */
   layoutPartsOnA4(parts, marginSec) {
+    parts.forEach(part => this.centerPieceGeometry(part));
+
     const pageWidth = this.A4_WIDTH - marginSec * 2;
     const pageHeight = this.A4_HEIGHT - marginSec * 2;
 
@@ -591,14 +633,15 @@ export class PaperAlfaGeometry {
         rowMaxH = 0;
       }
 
-      // Asignar posición central absoluta para la pieza en mm (origen = esquina superior izquierda A4)
-      const posX = curX - box.minX;
-      const posY = curY - box.minY;
+      // Asignar posición central absoluta para la pieza en mm (origen = centro geométrico de la pieza)
+      const posX = Math.round(curX + partW / 2);
+      const posY = Math.round(curY + partH / 2);
 
       part.layout = {
         pageIndex: currentPage,
         x: posX,
-        y: posY
+        y: posY,
+        rotation: 0
       };
 
       pages[currentPage].parts.push(part);
