@@ -33,7 +33,7 @@
     </div>
 
     <!-- NAVEGADOR DE FASES ARQUITECTÓNICAS -->
-    <nav class="phase-nav">
+    <nav id="top-phase-nav" class="phase-nav">
       <button class="phase-tab active" data-phase="phase1">
         <span>Fase 1: Primitivas</span>
       </button>
@@ -46,7 +46,10 @@
     </nav>
 
     <!-- ACCIÓN PRINCIPAL DE EXPORTACIÓN -->
-    <div style="display: flex; gap: 12px; align-items: center;">
+    <div style="display: flex; gap: 10px; align-items: center;">
+      <button id="btn-toggle-ui-mode" class="btn-preset" style="padding: 8px 12px; font-size: 11px; border-color: var(--accent-cyan); color: var(--accent-cyan); font-weight: bold;" title="Alternar entre Menú Simplificado (Sin solapas superiores, solo lo usado) y Versión Clásica">
+        ✨ Menú Simplificado
+      </button>
       <button id="btn-show-json" class="btn-preset" style="padding: 10px 14px;">
         { } JSON Spec
       </button>
@@ -65,6 +68,22 @@
   <main class="app-workspace">
     <!-- BARRA LATERAL IZQUIERDA DE PARÁMETROS -->
     <aside class="sidebar">
+      <!-- SELECTOR SIMPLIFICADO DE CATEGORÍA (MODO COMPACTO) -->
+      <div id="simplified-category-selector" class="sidebar-content" style="padding-bottom: 4px;">
+        <div class="section-title" style="margin-bottom: 6px;">
+          <span>00 // Categoría de Modelo</span>
+        </div>
+        <div class="card-panel" style="margin-bottom: 8px;">
+          <div class="form-group" style="margin-bottom: 0;">
+            <select id="select-phase-category" style="font-weight: bold; color: var(--accent-cyan);">
+              <option value="phase1" selected>📐 Geometría Básica y Primitivas</option>
+              <option value="phase2">🚀 Fuselajes Multiestación (Loft)</option>
+              <option value="phase3">✈️ Alas Aerodinámicas (NACA)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
       <!-- PANEL FASE 1: PRIMITIVAS (ACTIVO) -->
       <div id="panel-phase1" class="sidebar-content">
         <div class="section-title">

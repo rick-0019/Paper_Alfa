@@ -44,6 +44,8 @@ class PaperAlfaApp {
     this.bindPhaseTabs();
     this.bindPresetButtons();
     this.setupPepakuraToolbar();
+    this.setupCollapsibleSections();
+    this.setupUIModeToggle();
 
     // Cálculo inicial (Cono Truncado por defecto)
     this.recalculateAndRender();
@@ -235,6 +237,72 @@ class PaperAlfaApp {
     });
   }
 
+  setupCollapsibleSections() {
+    const titles = document.querySelectorAll('.sidebar-content .section-title');
+    titles.forEach(title => {
+      title.style.cursor = 'pointer';
+      title.style.userSelect = 'none';
+      title.title = 'Haz clic para colapsar / expandir sección';
+      title.addEventListener('click', () => {
+        const next = title.nextElementSibling;
+        if (next && next.classList.contains('card-panel')) {
+          const isHidden = next.style.display === 'none';
+          next.style.display = isHidden ? '' : 'none';
+          title.style.opacity = isHidden ? '1' : '0.65';
+        }
+      });
+    });
+  }
+
+  setupUIModeToggle() {
+    this.uiMode = localStorage.getItem('pep_ui_mode') || 'simplified';
+    const btnToggle = document.getElementById('btn-toggle-ui-mode');
+    const selectCat = document.getElementById('select-phase-category');
+
+    if (selectCat) {
+      selectCat.addEventListener('change', (e) => {
+        this.switchPhase(e.target.value);
+      });
+    }
+
+    if (btnToggle) {
+      btnToggle.addEventListener('click', () => {
+        this.uiMode = this.uiMode === 'simplified' ? 'classic' : 'simplified';
+        localStorage.setItem('pep_ui_mode', this.uiMode);
+        this.applyUIMode();
+      });
+    }
+
+    this.applyUIMode();
+  }
+
+  applyUIMode() {
+    const btnToggle = document.getElementById('btn-toggle-ui-mode');
+    const topNav = document.getElementById('top-phase-nav');
+    const catSelector = document.getElementById('simplified-category-selector');
+    const selectCat = document.getElementById('select-phase-category');
+
+    if (this.uiMode === 'simplified') {
+      if (topNav) topNav.style.display = 'none';
+      if (catSelector) catSelector.style.display = 'block';
+      if (btnToggle) {
+        btnToggle.textContent = '⏪ Menú Clásico';
+        btnToggle.title = 'Volver al Menú Clásico con solapas superiores y todas las secciones visibles';
+      }
+      if (selectCat) selectCat.value = this.activePhase || 'phase1';
+    } else {
+      if (topNav) topNav.style.display = 'flex';
+      if (catSelector) catSelector.style.display = 'none';
+      if (btnToggle) {
+        btnToggle.textContent = '✨ Menú Simplificado';
+        btnToggle.title = 'Activar el Menú Simplificado sin solapas y solo controles usados';
+      }
+      document.querySelectorAll('.sidebar-content .card-panel').forEach(p => {
+        p.style.display = '';
+      });
+    }
+  }
+
   bindPresetButtons() {
     const presets = {
       'preset-nozzle': { type: 'truncated_cone', d1: 80, d2: 45, height: 90, tabHeight: 6, teeth: 16 },
@@ -362,7 +430,7 @@ class PaperAlfaApp {
       if (elGroupSides) elGroupSides.style.display = 'flex';
       if (elCheckTop) { elCheckTop.checked = true; elCheckTop.disabled = false; }
     } else if (primitiveType === 'cylinder') {
-      if (elGroupD2) elGroupD2.style.display = 'flex';
+      if (elGroupD2) elGroupD2.style.display = 'none';
       if (elGroupSides) elGroupSides.style.display = 'none';
       if (elCheckTop) { elCheckTop.checked = true; elCheckTop.disabled = false; }
       const d1 = document.getElementById('input-d1')?.value || 70;
@@ -387,6 +455,9 @@ class PaperAlfaApp {
     if (panelPhase1) panelPhase1.classList.toggle('hidden', phase !== 'phase1');
     if (panelPhase2) panelPhase2.classList.toggle('hidden', phase !== 'phase2');
     if (panelPhase3) panelPhase3.classList.toggle('hidden', phase !== 'phase3');
+
+    const selectCat = document.getElementById('select-phase-category');
+    if (selectCat && selectCat.value !== phase) selectCat.value = phase;
 
     if (phase === 'phase2') {
       this.renderLoftStationsUI();
