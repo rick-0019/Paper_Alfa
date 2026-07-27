@@ -125,26 +125,20 @@ export class PaperAlfaGeometry {
     // 1. Pestaña de unión lateral recta en arista izquierda (startAngle)
     const sideTab = this.buildStraightSideTab(pStartInner, pStartOuter, tabHeight, 30);
     lines.cuts.push(...sideTab.cutLines);
-    if (tabHeight > 0) {
-      lines.mountainFolds.push({ x1: pStartInner.x, y1: pStartInner.y, x2: pStartOuter.x, y2: pStartOuter.y, type: 'mountain' });
-    }
+    lines.cuts.push({ x1: pStartInner.x, y1: pStartInner.y, x2: pStartOuter.x, y2: pStartOuter.y, type: 'cut' });
 
     // 2. Arista derecha de cierre (corte recto)
     lines.cuts.push({ x1: pEndInner.x, y1: pEndInner.y, x2: pEndOuter.x, y2: pEndOuter.y, type: 'cut' });
 
-    // 3. Pestañas dentadas (dientes de sierra) y línea de doblez en arco superior (rho2)
+    // 3. Pestañas dentadas (dientes de sierra) y contorno superior (rho2)
     const topSawtooth = this.buildSawtoothArc(rho2, startAngle, endAngle, tabHeight, teethCount, true);
     lines.cuts.push(...topSawtooth.cuts);
-    if (tabHeight > 0) {
-      lines.mountainFolds.push(this.createArcPath(0, 0, rho2, startAngle, endAngle, 'mountain'));
-    }
+    lines.cuts.push(this.createArcPath(0, 0, rho2, startAngle, endAngle, 'cut'));
 
-    // 4. Pestañas dentadas (dientes de sierra) y línea de doblez en arco inferior (rho1)
+    // 4. Pestañas dentadas (dientes de sierra) y contorno inferior (rho1)
     const bottomSawtooth = this.buildSawtoothArc(rho1, startAngle, endAngle, tabHeight, teethCount, false);
     lines.cuts.push(...bottomSawtooth.cuts);
-    if (tabHeight > 0) {
-      lines.mountainFolds.push(this.createArcPath(0, 0, rho1, startAngle, endAngle, 'mountain'));
-    }
+    lines.cuts.push(this.createArcPath(0, 0, rho1, startAngle, endAngle, 'cut'));
 
     return {
       id: 'mantle',
@@ -163,9 +157,7 @@ export class PaperAlfaGeometry {
   buildStraightSideTab(pInner, pOuter, height, bevelDeg) {
     if (height <= 0) {
       return {
-        cutLines: [
-          { x1: pInner.x, y1: pInner.y, x2: pOuter.x, y2: pOuter.y, type: 'cut' }
-        ]
+        cutLines: []
       };
     }
     const dx = pOuter.x - pInner.x;
@@ -198,9 +190,7 @@ export class PaperAlfaGeometry {
   buildSawtoothArc(radius, startAngle, endAngle, tabHeight, teethCount, isInner) {
     if (tabHeight <= 0) {
       return {
-        cuts: [
-          this.createArcPath(0, 0, radius, startAngle, endAngle, 'cut')
-        ]
+        cuts: []
       };
     }
     const cuts = [];
@@ -791,9 +781,7 @@ export class PaperAlfaGeometry {
     // Pestaña lateral recta en arista izquierda
     const sideTab = this.buildStraightSideTab(pStartInner, pStartOuter, tabHeight, 30);
     lines.cuts.push(...sideTab.cutLines);
-    if (tabHeight > 0) {
-      lines.mountainFolds.push({ x1: 0, y1: 0, x2: pStartOuter.x, y2: pStartOuter.y, type: 'mountain' });
-    }
+    lines.cuts.push({ x1: 0, y1: 0, x2: pStartOuter.x, y2: pStartOuter.y, type: 'cut' });
 
     // Corte derecho
     lines.cuts.push({ x1: 0, y1: 0, x2: pEndOuter.x, y2: pEndOuter.y, type: 'cut' });
@@ -801,9 +789,7 @@ export class PaperAlfaGeometry {
     // Pestañas dentadas SOLAMENTE en arco inferior (rho1)
     const bottomSawtooth = this.buildSawtoothArc(rho1, startAngle, endAngle, tabHeight, teethCount, false);
     lines.cuts.push(...bottomSawtooth.cuts);
-    if (tabHeight > 0) {
-      lines.mountainFolds.push(this.createArcPath(0, 0, rho1, startAngle, endAngle, 'mountain'));
-    }
+    lines.cuts.push(this.createArcPath(0, 0, rho1, startAngle, endAngle, 'cut'));
 
     return {
       id: 'mantle',
