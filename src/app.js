@@ -81,22 +81,25 @@ class PaperAlfaApp {
     bindPepBtn('btn-pep-add-page', () => {
       const newIdx = this.viewer2D.addBlankPage(this.currentModelData);
       this.userSelectedSinglePage = true;
-      this.currentPageIndex = newIdx;
-      this.recalculateAndRender();
+      this.refreshLayoutUI(newIdx);
     });
     bindPepBtn('btn-pep-remove-empty', () => {
       this.viewer2D.removeEmptyPages(this.currentModelData);
-      if (typeof this.currentPageIndex === 'number' && this.currentPageIndex >= this.currentModelData.pages.length) {
-        this.currentPageIndex = this.currentModelData.pages.length - 1;
+      this.refreshLayoutUI();
+    });
+    bindPepBtn('btn-pep-delete-page', () => {
+      const activeIdx = typeof this.currentPageIndex === 'number' ? this.currentPageIndex : (this.currentModelData.pages.length - 1);
+      const ok = this.viewer2D.deleteCurrentPage(this.currentModelData, activeIdx);
+      if (ok) {
+        this.userSelectedSinglePage = true;
+        this.refreshLayoutUI(Math.max(0, activeIdx - 1));
       }
-      this.recalculateAndRender();
     });
     bindPepBtn('btn-pep-move-page', () => {
       const nextIdx = this.viewer2D.moveSelectedPartToNextPage(this.currentModelData);
       if (nextIdx !== null) {
         this.userSelectedSinglePage = true;
-        this.currentPageIndex = nextIdx;
-        this.recalculateAndRender();
+        this.refreshLayoutUI(nextIdx);
       } else {
         alert('Selecciona primero la pieza que deseas mover a otra hoja.');
       }
@@ -1502,8 +1505,7 @@ class PaperAlfaApp {
         btnAll.style.fontWeight = 'bold';
         btnAll.addEventListener('click', () => {
           this.userSelectedSinglePage = false;
-          this.currentPageIndex = 'all';
-          this.recalculateAndRender();
+          this.refreshLayoutUI('all');
         });
         elPageSelector.appendChild(btnAll);
 
@@ -1513,8 +1515,7 @@ class PaperAlfaApp {
           btn.textContent = `Hoja #${i + 1}`;
           btn.addEventListener('click', () => {
             this.userSelectedSinglePage = true;
-            this.currentPageIndex = i;
-            this.recalculateAndRender();
+            this.refreshLayoutUI(i);
           });
           elPageSelector.appendChild(btn);
         }
@@ -1535,10 +1536,24 @@ class PaperAlfaApp {
       btnAddPage.addEventListener('click', () => {
         const newIdx = this.viewer2D.addBlankPage(this.currentModelData);
         this.userSelectedSinglePage = true;
-        this.currentPageIndex = newIdx;
-        this.recalculateAndRender();
+        this.refreshLayoutUI(newIdx);
       });
       elPageSelector.appendChild(btnAddPage);
+
+      const btnDeleteCurrent = document.createElement('button');
+      btnDeleteCurrent.className = 'page-btn';
+      btnDeleteCurrent.textContent = '🗑️ Eliminar Hoja';
+      btnDeleteCurrent.title = 'Eliminar la hoja A4 actual y mover sus piezas a la hoja anterior';
+      btnDeleteCurrent.style.color = '#FF6B6B';
+      btnDeleteCurrent.addEventListener('click', () => {
+        const activeIdx = typeof this.currentPageIndex === 'number' ? this.currentPageIndex : (this.currentModelData.pages.length - 1);
+        const ok = this.viewer2D.deleteCurrentPage(this.currentModelData, activeIdx);
+        if (ok) {
+          this.userSelectedSinglePage = true;
+          this.refreshLayoutUI(Math.max(0, activeIdx - 1));
+        }
+      });
+      elPageSelector.appendChild(btnDeleteCurrent);
 
       const btnCleanPages = document.createElement('button');
       btnCleanPages.className = 'page-btn';
@@ -1547,10 +1562,7 @@ class PaperAlfaApp {
       btnCleanPages.style.color = '#FCC419';
       btnCleanPages.addEventListener('click', () => {
         this.viewer2D.removeEmptyPages(this.currentModelData);
-        if (typeof this.currentPageIndex === 'number' && this.currentPageIndex >= this.currentModelData.pages.length) {
-          this.currentPageIndex = this.currentModelData.pages.length - 1;
-        }
-        this.recalculateAndRender();
+        this.refreshLayoutUI();
       });
       elPageSelector.appendChild(btnCleanPages);
     }

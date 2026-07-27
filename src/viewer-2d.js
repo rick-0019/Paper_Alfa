@@ -257,8 +257,51 @@ export class PaperAlfaViewer2D {
       modelData.metrics.pageCount = filtered.length;
       modelData.metrics.fitsInSingleA4 = (filtered.length === 1);
     }
+    modelData.pageCount = filtered.length;
     this.render(modelData, 'all');
     if (this.onLayoutChanged) this.onLayoutChanged();
+  }
+
+  deleteCurrentPage(modelData, pageIdxToDelete = 0) {
+    if (!modelData || !modelData.pages || modelData.pages.length <= 1) {
+      alert('No puedes eliminar la única hoja del documento.');
+      return false;
+    }
+
+    let idx = typeof pageIdxToDelete === 'number' ? pageIdxToDelete : modelData.pages.length - 1;
+    if (idx < 0 || idx >= modelData.pages.length) idx = modelData.pages.length - 1;
+
+    const targetIdx = idx > 0 ? idx - 1 : 0;
+    const pageToDelete = modelData.pages[idx];
+    if (pageToDelete && pageToDelete.parts && pageToDelete.parts.length > 0) {
+      const targetPage = modelData.pages[targetIdx];
+      pageToDelete.parts.forEach(part => {
+        if (!part.layout) part.layout = {};
+        part.layout.pageIndex = targetIdx;
+        targetPage.parts.push(part);
+      });
+    }
+
+    modelData.pages.splice(idx, 1);
+
+    modelData.pages.forEach((p, i) => {
+      p.pageNum = i + 1;
+      if (p.parts) {
+        p.parts.forEach(part => {
+          if (part.layout) part.layout.pageIndex = i;
+        });
+      }
+    });
+
+    if (modelData.metrics) {
+      modelData.metrics.pageCount = modelData.pages.length;
+      modelData.metrics.fitsInSingleA4 = (modelData.pages.length === 1);
+    }
+    modelData.pageCount = modelData.pages.length;
+
+    this.render(modelData, 'all');
+    if (this.onLayoutChanged) this.onLayoutChanged();
+    return true;
   }
 
   moveSelectedPartToNextPage(modelData) {
