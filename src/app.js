@@ -78,32 +78,6 @@ class PaperAlfaApp {
     bindPepBtn('btn-pep-fit-sheet', () => this.viewer2D.resetView());
     bindPepBtn('btn-pep-duplicate', () => this.viewer2D.duplicateSelectedPart(this.currentModelData));
     bindPepBtn('btn-pep-delete', () => this.viewer2D.deleteSelectedPart(this.currentModelData));
-    bindPepBtn('btn-pep-add-page', () => {
-      const newIdx = this.viewer2D.addBlankPage(this.currentModelData);
-      this.userSelectedSinglePage = true;
-      this.refreshLayoutUI(newIdx);
-    });
-    bindPepBtn('btn-pep-remove-empty', () => {
-      this.viewer2D.removeEmptyPages(this.currentModelData);
-      this.refreshLayoutUI();
-    });
-    bindPepBtn('btn-pep-delete-page', () => {
-      const activeIdx = typeof this.currentPageIndex === 'number' ? this.currentPageIndex : (this.currentModelData.pages.length - 1);
-      const ok = this.viewer2D.deleteCurrentPage(this.currentModelData, activeIdx);
-      if (ok) {
-        this.userSelectedSinglePage = true;
-        this.refreshLayoutUI(Math.max(0, activeIdx - 1));
-      }
-    });
-    bindPepBtn('btn-pep-move-page', () => {
-      const nextIdx = this.viewer2D.moveSelectedPartToNextPage(this.currentModelData);
-      if (nextIdx !== null) {
-        this.userSelectedSinglePage = true;
-        this.refreshLayoutUI(nextIdx);
-      } else {
-        alert('Selecciona primero la pieza que deseas mover a otra hoja.');
-      }
-    });
 
     window.addEventListener('keydown', (e) => {
       if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA')) return;
@@ -1540,44 +1514,6 @@ class PaperAlfaApp {
         span.textContent = '1 HOJA A4';
         elPageSelector.appendChild(span);
       }
-
-      const btnAddPage = document.createElement('button');
-      btnAddPage.className = 'page-btn';
-      btnAddPage.textContent = '➕ Hoja';
-      btnAddPage.title = 'Agregar una nueva Hoja A4 vacía';
-      btnAddPage.style.color = '#51CF66';
-      btnAddPage.addEventListener('click', () => {
-        const newIdx = this.viewer2D.addBlankPage(this.currentModelData);
-        this.userSelectedSinglePage = true;
-        this.refreshLayoutUI(newIdx);
-      });
-      elPageSelector.appendChild(btnAddPage);
-
-      const btnDeleteCurrent = document.createElement('button');
-      btnDeleteCurrent.className = 'page-btn';
-      btnDeleteCurrent.textContent = '🗑️ Eliminar Hoja';
-      btnDeleteCurrent.title = 'Eliminar la hoja A4 actual y mover sus piezas a la hoja anterior';
-      btnDeleteCurrent.style.color = '#FF6B6B';
-      btnDeleteCurrent.addEventListener('click', () => {
-        const activeIdx = typeof this.currentPageIndex === 'number' ? this.currentPageIndex : (this.currentModelData.pages.length - 1);
-        const ok = this.viewer2D.deleteCurrentPage(this.currentModelData, activeIdx);
-        if (ok) {
-          this.userSelectedSinglePage = true;
-          this.refreshLayoutUI(Math.max(0, activeIdx - 1));
-        }
-      });
-      elPageSelector.appendChild(btnDeleteCurrent);
-
-      const btnCleanPages = document.createElement('button');
-      btnCleanPages.className = 'page-btn';
-      btnCleanPages.textContent = '🧹 Quitar Vacías';
-      btnCleanPages.title = 'Eliminar todas las hojas A4 que no tengan piezas';
-      btnCleanPages.style.color = '#FCC419';
-      btnCleanPages.addEventListener('click', () => {
-        this.viewer2D.removeEmptyPages(this.currentModelData);
-        this.refreshLayoutUI();
-      });
-      elPageSelector.appendChild(btnCleanPages);
     }
   }
 
