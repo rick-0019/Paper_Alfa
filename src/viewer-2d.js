@@ -387,9 +387,6 @@ export class PaperAlfaViewer2D {
   render(modelData, pageIndex = 0) {
     this.lastModelData = modelData;
     this.lastPageIndex = pageIndex;
-    this.panX = 0;
-    this.panY = 0;
-    this.zoom = 1.0;
     if (!this.svg) return;
     this.svg.innerHTML = ''; // Limpiar lienzo
 
