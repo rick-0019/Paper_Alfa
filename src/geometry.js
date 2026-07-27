@@ -564,6 +564,10 @@ export class PaperAlfaGeometry {
       if (line.isArc) {
         line.cx -= cx;
         line.cy -= cy;
+        const start = this.polarToCartesian(line.cx, line.cy, line.radius, line.startAngle);
+        const end = this.polarToCartesian(line.cx, line.cy, line.radius, line.endAngle);
+        const largeArcFlag = line.endAngle - line.startAngle <= Math.PI ? 0 : 1;
+        line.d = `M ${start.x} ${start.y} A ${line.radius} ${line.radius} 0 ${largeArcFlag} 1 ${end.x} ${end.y}`;
       } else {
         if (line.x1 !== undefined) line.x1 -= cx;
         if (line.y1 !== undefined) line.y1 -= cy;
