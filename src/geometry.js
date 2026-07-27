@@ -890,11 +890,23 @@ export class PaperAlfaGeometry {
       const D  = Math.hypot(P2_a.x - P1_b.x, P2_a.y - P1_b.y, P2_a.z - P1_b.z);
       const G_next = Math.hypot(P2_b.x - P1_b.x, P2_b.y - P1_b.y, P2_b.z - P1_b.z);
       
-      const pref1 = { x: V1[i].x + a1, y: V1[i].y };
+      let dir1x = 1, dir1y = 0;
+      if (i > 0) {
+        const d_prev = Math.hypot(V1[i].x - V1[i-1].x, V1[i].y - V1[i-1].y) || 1;
+        dir1x = (V1[i].x - V1[i-1].x) / d_prev;
+        dir1y = (V1[i].y - V1[i-1].y) / d_prev;
+      }
+      const pref1 = { x: V1[i].x + dir1x * a1, y: V1[i].y + dir1y * a1 };
       const nextV1 = this.intersect2DCircles(V1[i], a1, V2[i], D, pref1);
       V1.push(nextV1);
       
-      const pref2 = { x: V2[i].x + a2, y: V2[i].y };
+      let dir2x = 1, dir2y = 0;
+      if (i > 0) {
+        const d_prev = Math.hypot(V2[i].x - V2[i-1].x, V2[i].y - V2[i-1].y) || 1;
+        dir2x = (V2[i].x - V2[i-1].x) / d_prev;
+        dir2y = (V2[i].y - V2[i-1].y) / d_prev;
+      }
+      const pref2 = { x: V2[i].x + dir2x * a2, y: V2[i].y + dir2y * a2 };
       const nextV2 = this.intersect2DCircles(nextV1, G_next, V2[i], a2, pref2);
       V2.push(nextV2);
 
