@@ -319,10 +319,10 @@ export class PaperAlfaViewer2D {
 
         // Renderizar trazos
         const lines = part.lines || {};
-        // Dobleces montaña (azul punteado)
-        (lines.mountainFolds || []).forEach(l => partG.appendChild(this.createSVGPathOrLine(l, '#0066CC', '0.35', '2, 1')));
-        // Dobleces valle (rojo punteado)
-        (lines.valleyFolds || []).forEach(l => partG.appendChild(this.createSVGPathOrLine(l, '#CC0000', '0.35', '1, 1')));
+        // Dobleces montaña (línea continua negra fina)
+        (lines.mountainFolds || []).forEach(l => partG.appendChild(this.createSVGPathOrLine(l, '#000000', '0.35', 'none')));
+        // Dobleces valle (línea continua negra fina)
+        (lines.valleyFolds || []).forEach(l => partG.appendChild(this.createSVGPathOrLine(l, '#000000', '0.35', 'none')));
         // Marcas CAD técnicas (cruces X de centro y eje)
         (lines.markings || []).forEach(l => partG.appendChild(this.createSVGPathOrLine(l, l.color || '#FF3B30', (l.width || 0.45).toString(), l.type === 'centroid-x' ? '1, 0.5' : 'none')));
         // Cortes exteriores (negro continuo)

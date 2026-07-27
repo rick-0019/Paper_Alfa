@@ -222,18 +222,18 @@ export class PaperAlfaPdfExporter {
   drawPartLines(doc, part, originX, originY, rotDeg = 0) {
     const lines = part.lines || {};
 
-    // A) Primero las líneas de doblez (montaña y valle)
+    // A) Primero las líneas de doblez (montaña y valle - línea fina negra continua)
     if (lines.mountainFolds) {
-      doc.setDrawColor(0, 102, 204); // Azul #0066CC
-      doc.setLineWidth(0.12);        // ~0.3 pt
-      doc.setLineDash([2, 1], 0);    // Punteado montaña
+      doc.setDrawColor(0, 0, 0);     // Negro puro #000000
+      doc.setLineWidth(0.12);        // ~0.3 pt (línea fina de doblez)
+      doc.setLineDash([], 0);        // Línea continua
       lines.mountainFolds.forEach(line => this.renderLineOrArc(doc, line, originX, originY, rotDeg));
     }
 
     if (lines.valleyFolds) {
-      doc.setDrawColor(204, 0, 0);   // Rojo #CC0000
-      doc.setLineWidth(0.12);        // ~0.3 pt
-      doc.setLineDash([1, 1], 0);    // Punteado valle
+      doc.setDrawColor(0, 0, 0);     // Negro puro #000000
+      doc.setLineWidth(0.12);        // ~0.3 pt (línea fina de doblez)
+      doc.setLineDash([], 0);        // Línea continua
       lines.valleyFolds.forEach(line => this.renderLineOrArc(doc, line, originX, originY, rotDeg));
     }
 
