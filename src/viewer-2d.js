@@ -110,20 +110,25 @@ export class PaperAlfaViewer2D {
       if (this.lastPageIndex === 'all' && this.lastModelData && this.lastModelData.pages) {
         const spacing = 25;
         const pageH = this.A4_HEIGHT;
-        const absY = part.layout.y;
         const currentPageIdx = part.layout.pageIndex || 0;
+        // layout.y es RELATIVO a la hoja actual → convertir a absoluto sumando el offset de la hoja
+        const currentOffset = currentPageIdx * (pageH + spacing);
+        const absY = currentOffset + part.layout.y;
 
-        // Calcular en qué hoja cayó visualmente (considerando el offsetY de cada hoja)
-        let newPageIdx = 0;
+        // Calcular en qué hoja cayó visualmente
+        let newPageIdx = currentPageIdx;
         const pages = this.lastModelData.pages;
         for (let i = 0; i < pages.length; i++) {
-          const offsetY = i * (pageH + spacing);
-          if (absY >= offsetY && absY < offsetY + pageH) {
+          const top = i * (pageH + spacing);
+          const bottom = top + pageH;
+          if (absY >= top && absY < bottom) {
             newPageIdx = i;
             break;
-          } else if (absY >= offsetY + pageH && i === pages.length - 1) {
-            newPageIdx = i;
           }
+        }
+        // Si cayó más abajo de la última hoja, asignar a la última
+        if (absY >= pages.length * (pageH + spacing)) {
+          newPageIdx = pages.length - 1;
         }
 
         if (newPageIdx !== currentPageIdx && pages[newPageIdx]) {
@@ -134,9 +139,9 @@ export class PaperAlfaViewer2D {
               if (idx !== -1) page.parts.splice(idx, 1);
             }
           });
-          // Ajustar coordenada Y relativa a la nueva hoja
-          const newOffsetY = newPageIdx * (pageH + spacing);
-          part.layout.y = part.layout.y - newOffsetY;
+          // Convertir coordenada Y absoluta a relativa de la nueva hoja
+          const newOffset = newPageIdx * (pageH + spacing);
+          part.layout.y = absY - newOffset;
           part.layout.pageIndex = newPageIdx;
           pages[newPageIdx].parts.push(part);
           // Re-renderizar para que quede consistente
