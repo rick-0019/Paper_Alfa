@@ -225,8 +225,71 @@ export class PaperAlfaViewer2D {
 
     modelData.pages = newPages;
     modelData.pageCount = newPages.length;
+    if (modelData.metrics) {
+      modelData.metrics.pageCount = newPages.length;
+      modelData.metrics.fitsInSingleA4 = (newPages.length === 1);
+    }
     this.render(modelData, 'all');
     if (this.onLayoutChanged) this.onLayoutChanged();
+  }
+
+  addBlankPage(modelData) {
+    if (!modelData || !modelData.pages) return 0;
+    const newIdx = modelData.pages.length;
+    modelData.pages.push({ pageNum: newIdx + 1, parts: [], overflow: false });
+    if (modelData.metrics) {
+      modelData.metrics.pageCount = modelData.pages.length;
+      modelData.metrics.fitsInSingleA4 = (modelData.pages.length === 1);
+    }
+    return newIdx;
+  }
+
+  removeEmptyPages(modelData) {
+    if (!modelData || !modelData.pages) return;
+    const filtered = modelData.pages.filter(p => p && p.parts && p.parts.length > 0);
+    if (filtered.length === 0) {
+      filtered.push({ pageNum: 1, parts: [], overflow: false });
+    } else {
+      filtered.forEach((p, idx) => { p.pageNum = idx + 1; });
+    }
+    modelData.pages = filtered;
+    if (modelData.metrics) {
+      modelData.metrics.pageCount = filtered.length;
+      modelData.metrics.fitsInSingleA4 = (filtered.length === 1);
+    }
+    this.render(modelData, 'all');
+    if (this.onLayoutChanged) this.onLayoutChanged();
+  }
+
+  moveSelectedPartToNextPage(modelData) {
+    if (!this.selectedPart || !modelData || !modelData.pages) return null;
+    let currentIdx = -1;
+    modelData.pages.forEach((page, idx) => {
+      if (page && page.parts) {
+        const found = page.parts.indexOf(this.selectedPart);
+        if (found !== -1) {
+          currentIdx = idx;
+          page.parts.splice(found, 1);
+        }
+      }
+    });
+    if (currentIdx === -1) return null;
+
+    if (modelData.pages.length === 1) {
+      modelData.pages.push({ pageNum: 2, parts: [], overflow: false });
+    }
+    const nextIdx = (currentIdx + 1) % modelData.pages.length;
+    modelData.pages[nextIdx].parts.push(this.selectedPart);
+    if (!this.selectedPart.layout) this.selectedPart.layout = {};
+    this.selectedPart.layout.pageIndex = nextIdx;
+
+    if (modelData.metrics) {
+      modelData.metrics.pageCount = modelData.pages.length;
+      modelData.metrics.fitsInSingleA4 = (modelData.pages.length === 1);
+    }
+    this.render(modelData, 'all');
+    if (this.onLayoutChanged) this.onLayoutChanged();
+    return nextIdx;
   }
 
   /**

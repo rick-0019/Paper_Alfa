@@ -58,6 +58,10 @@ export class PaperAlfaPdfExporter {
       nonEmptyPages.forEach((p, idx) => { p.pageNum = idx + 1; });
       modelData.pages = nonEmptyPages;
       modelData.pageCount = nonEmptyPages.length;
+      if (modelData.metrics) {
+        modelData.metrics.pageCount = nonEmptyPages.length;
+        modelData.metrics.fitsInSingleA4 = (nonEmptyPages.length === 1);
+      }
     }
   }
 
