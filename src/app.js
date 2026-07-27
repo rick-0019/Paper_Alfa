@@ -707,6 +707,58 @@ class PaperAlfaApp {
     this.renderCADEditor(true);
   }
 
+  addCADPointAfterSelected() {
+    if (!this.editingPoints || this.editingPoints.length === 0) return;
+    const idx = (this.selectedCadPointIndex !== null && this.selectedCadPointIndex < this.editingPoints.length)
+      ? this.selectedCadPointIndex
+      : this.editingPoints.length - 1;
+    const nextIdx = (idx + 1) % this.editingPoints.length;
+    const p1 = this.editingPoints[idx];
+    const p2 = this.editingPoints[nextIdx];
+    const dist = Math.hypot(p2.y - p1.y, p2.z - p1.z);
+    
+    let newPt;
+    if (dist === 0) {
+      newPt = { y: p1.y + 5, z: p1.z };
+    } else if (dist <= 20) {
+      newPt = {
+        y: Number(((p1.y + p2.y) / 2).toFixed(1)),
+        z: Number(((p1.z + p2.z) / 2).toFixed(1))
+      };
+    } else {
+      // Si están lejos, colocar el punto a 10 mm del punto seleccionado en dirección al siguiente para no romper la figura
+      const t = 10 / dist;
+      newPt = {
+        y: Number((p1.y + (p2.y - p1.y) * t).toFixed(1)),
+        z: Number((p1.z + (p2.z - p1.z) * t).toFixed(1))
+      };
+    }
+    
+    this.editingPoints.splice(idx + 1, 0, newPt);
+    this.selectedCadPointIndex = idx + 1;
+    this.renderCADEditor(true);
+  }
+
+  toggleCADAddClickMode() {
+    this.isCadAddingByClick = !this.isCadAddingByClick;
+    const btn = document.getElementById('btn-cad-add-click');
+    const hint = document.getElementById('cad-add-click-hint');
+    const svg = document.getElementById('cad-svg-editor');
+    if (btn && hint && svg) {
+      if (this.isCadAddingByClick) {
+        btn.style.background = 'var(--accent-cyan)';
+        btn.style.color = '#0D1117';
+        hint.style.display = 'block';
+        svg.style.cursor = 'crosshair';
+      } else {
+        btn.style.background = '';
+        btn.style.color = '';
+        hint.style.display = 'none';
+        svg.style.cursor = '';
+      }
+    }
+  }
+
   selectCadPoint(i) {
     if (!this.editingPoints || i < 0 || i >= this.editingPoints.length) return;
     this.selectedCadPointIndex = i;
@@ -985,19 +1037,12 @@ class PaperAlfaApp {
 
     const btnAdd = document.getElementById('btn-cad-add-point');
     if (btnAdd) {
-      btnAdd.addEventListener('click', () => {
-        if (!this.editingPoints || this.editingPoints.length === 0) return;
-        const idx = (this.selectedCadPointIndex !== null && this.selectedCadPointIndex < this.editingPoints.length)
-          ? this.selectedCadPointIndex
-          : this.editingPoints.length - 1;
-        const nextIdx = (idx + 1) % this.editingPoints.length;
-        const p1 = this.editingPoints[idx];
-        const p2 = this.editingPoints[nextIdx];
-        const newPt = { y: Math.round((p1.y + p2.y) / 2), z: Math.round((p1.z + p2.z) / 2) };
-        this.editingPoints.splice(idx + 1, 0, newPt);
-        this.selectedCadPointIndex = idx + 1;
-        this.renderCADEditor(true);
-      });
+      btnAdd.addEventListener('click', () => this.addCADPointAfterSelected());
+    }
+
+    const btnAddClick = document.getElementById('btn-cad-add-click');
+    if (btnAddClick) {
+      btnAddClick.addEventListener('click', () => this.toggleCADAddClickMode());
     }
 
     const btnUndo = document.getElementById('btn-cad-undo');
@@ -1089,7 +1134,7 @@ class PaperAlfaApp {
     const svg = document.getElementById('cad-svg-editor');
     if (svg) {
       svg.addEventListener('click', (e) => {
-        if (!this.editingPoints) return;
+        if (!this.editingPoints || !this.isCadAddingByClick) return;
         const rect = svg.getBoundingClientRect();
         const normX = (e.clientX - rect.left) / rect.width;
         const normY = (e.clientY - rect.top) / rect.height;
@@ -1105,8 +1150,13 @@ class PaperAlfaApp {
           zCoord = Number(zCoord.toFixed(1));
         }
 
-        this.editingPoints.push({ y: yCoord, z: zCoord });
-        this.selectedCadPointIndex = this.editingPoints.length - 1;
+        const idx = (this.selectedCadPointIndex !== null && this.selectedCadPointIndex < this.editingPoints.length)
+          ? this.selectedCadPointIndex
+          : this.editingPoints.length - 1;
+
+        this.editingPoints.splice(idx + 1, 0, { y: yCoord, z: zCoord });
+        this.selectedCadPointIndex = idx + 1;
+        this.toggleCADAddClickMode(); // Desactivar modo tras insertar el punto
         this.renderCADEditor(true);
       });
     }

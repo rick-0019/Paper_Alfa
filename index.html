@@ -373,7 +373,13 @@
                 <tbody id="cad-points-tbody"></tbody>
               </table>
             </div>
-            <button id="btn-cad-add-point" class="btn-preset" style="width: 100%; margin-top: 8px;">+ Añadir Punto</button>
+            <div style="display: flex; gap: 6px; margin-top: 8px;">
+              <button id="btn-cad-add-point" class="btn-preset" style="flex: 1; font-size: 11px; padding: 6px;" title="Inserta un nuevo vértice adyacente justo después del punto seleccionado (+10 mm en el contorno)">+ Añadir (Contorno)</button>
+              <button id="btn-cad-add-click" class="btn-preset" style="flex: 1; font-size: 11px; padding: 6px;" title="Activa el modo cursor para añadir un punto haciendo clic en la grilla CAD">+ Clic en Grilla</button>
+            </div>
+            <div id="cad-add-click-hint" style="font-size: 10px; color: var(--accent-cyan); margin-top: 4px; text-align: center; display: none;">
+              🎯 <i>Haz clic en cualquier lugar del lienzo para insertar ahí un punto después del seleccionado.</i>
+            </div>
           </div>
           <div class="cad-section cad-stats-box">
             <div><strong>Centroide (X Roja):</strong> <span id="cad-stat-centroid" style="color: #FF3B30;">Y=0.0, Z=0.0</span></div>
