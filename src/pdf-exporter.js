@@ -78,7 +78,72 @@ export class PaperAlfaPdfExporter {
 
     // Generar nombre de archivo estándar
     const filename = `PAPER_ALFA_${modelData.type.toUpperCase()}_A4_1-1.pdf`;
-    doc.save(filename);
+    this.previewPDF(doc, filename);
+  }
+
+  /**
+   * Abre modal de previsualización con iframe y opciones de Guardar, Imprimir o Cerrar
+   */
+  previewPDF(doc, filename) {
+    const blob = doc.output('blob');
+    const blobUrl = URL.createObjectURL(blob);
+    
+    let modal = document.getElementById('modal-pdf-preview');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'modal-pdf-preview';
+      modal.className = 'modal-overlay';
+      modal.innerHTML = `
+        <div class="modal-card" style="width: 88vw; max-width: 1200px; height: 92vh; max-height: 92vh; display: flex; flex-direction: column; padding: 16px; background: var(--bg-panel); border: 1px solid var(--border-subtle); border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.6);">
+          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-subtle); padding-bottom: 12px; margin-bottom: 12px;">
+            <div>
+              <h3 style="margin: 0; font-size: 16px; color: var(--text-primary);">📄 Previsualización Técnica A4 (1:1)</h3>
+              <div id="pdf-preview-filename" style="font-size: 11px; color: var(--accent-cyan); margin-top: 3px;"></div>
+            </div>
+            <div style="display: flex; gap: 8px;">
+              <button id="btn-pdf-preview-open" class="btn-preset" style="padding: 7px 14px; font-size: 12px; cursor: pointer;" title="Abrir en pestaña nueva del navegador para Imprimir con la impresora de referencia">🖨️ Abrir / Imprimir</button>
+              <button id="btn-pdf-preview-download" class="btn-action" style="padding: 7px 16px; font-size: 12px; cursor: pointer;" title="Descargar archivo .pdf final a tu computadora">📥 Guardar PDF (.pdf)</button>
+              <button id="btn-pdf-preview-close" class="btn-preset" style="padding: 7px 14px; font-size: 12px; background: rgba(255,59,48,0.2); color: #FF3B30; cursor: pointer;" title="Cerrar previsualización sin guardar">✕ Cerrar</button>
+            </div>
+          </div>
+          <div style="flex: 1; width: 100%; background: #525659; border-radius: 6px; overflow: hidden; border: 1px solid var(--border-subtle); position: relative;">
+            <iframe id="pdf-preview-iframe" style="width: 100%; height: 100%; border: none;"></iframe>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+      
+      document.getElementById('btn-pdf-preview-close').addEventListener('click', () => {
+        modal.classList.add('hidden');
+      });
+    }
+
+    const filenameEl = document.getElementById('pdf-preview-filename');
+    if (filenameEl) {
+      filenameEl.textContent = `Archivo: ${filename} • Escala técnica 1:1 en mm • Listo para verificar o guardar`;
+    }
+
+    const iframe = document.getElementById('pdf-preview-iframe');
+    if (iframe) {
+      iframe.src = blobUrl;
+    }
+
+    const btnDownload = document.getElementById('btn-pdf-preview-download');
+    const btnOpen = document.getElementById('btn-pdf-preview-open');
+
+    const newDownload = btnDownload.cloneNode(true);
+    btnDownload.parentNode.replaceChild(newDownload, btnDownload);
+    newDownload.addEventListener('click', () => {
+      doc.save(filename);
+    });
+
+    const newOpen = btnOpen.cloneNode(true);
+    btnOpen.parentNode.replaceChild(newOpen, btnOpen);
+    newOpen.addEventListener('click', () => {
+      window.open(blobUrl, '_blank');
+    });
+
+    modal.classList.remove('hidden');
   }
 
   /**
