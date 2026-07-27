@@ -73,6 +73,23 @@ class PaperAlfaApp {
     bindPepBtn('btn-pep-rot-cw-90', () => this.viewer2D.rotateSelectedPart(90));
     bindPepBtn('btn-pep-center-page', () => this.viewer2D.centerSelectedPartOnPage());
     bindPepBtn('btn-pep-auto-pack', () => this.viewer2D.autoPackCurrentPage(this.currentModelData, this.currentPageIndex));
+    bindPepBtn('btn-pep-duplicate', () => this.viewer2D.duplicateSelectedPart(this.currentModelData));
+    bindPepBtn('btn-pep-delete', () => this.viewer2D.deleteSelectedPart(this.currentModelData));
+
+    window.addEventListener('keydown', (e) => {
+      if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA')) return;
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (this.viewer2D && this.viewer2D.selectedPart) {
+          e.preventDefault();
+          this.viewer2D.deleteSelectedPart(this.currentModelData);
+        }
+      } else if ((e.ctrlKey || e.metaKey) && (e.key === 'd' || e.key === 'D')) {
+        if (this.viewer2D && this.viewer2D.selectedPart) {
+          e.preventDefault();
+          this.viewer2D.duplicateSelectedPart(this.currentModelData);
+        }
+      }
+    });
   }
 
   bindParameterControls() {

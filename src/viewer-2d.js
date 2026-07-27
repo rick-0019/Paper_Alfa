@@ -130,6 +130,43 @@ export class PaperAlfaViewer2D {
     if (this.onLayoutChanged) this.onLayoutChanged(this.selectedPart);
   }
 
+  deleteSelectedPart(modelData) {
+    const md = modelData || this.lastModelData;
+    if (!this.selectedPart || !md || !md.pages) return;
+    md.pages.forEach(page => {
+      if (page && page.parts) {
+        const idx = page.parts.indexOf(this.selectedPart);
+        if (idx !== -1) {
+          page.parts.splice(idx, 1);
+        }
+      }
+    });
+    this.selectedPart = null;
+    this.selectedPartG = null;
+    this.render(md, 'all');
+    if (this.onLayoutChanged) this.onLayoutChanged(null);
+  }
+
+  duplicateSelectedPart(modelData) {
+    const md = modelData || this.lastModelData;
+    if (!this.selectedPart || !md || !md.pages) return;
+    const copy = JSON.parse(JSON.stringify(this.selectedPart));
+    copy.id = `${copy.id}_copy_${Date.now()}`;
+    copy.name = `${copy.name} (Copia)`;
+    if (!copy.layout) copy.layout = { x: 105, y: 148, rotation: 0, pageIndex: 0 };
+    copy.layout.x = Math.round((copy.layout.x || 105) + 15);
+    copy.layout.y = Math.round((copy.layout.y || 148) + 15);
+    const targetIdx = copy.layout.pageIndex || 0;
+    if (!md.pages[targetIdx]) {
+      md.pages[0].parts.push(copy);
+    } else {
+      md.pages[targetIdx].parts.push(copy);
+    }
+    this.selectedPart = copy;
+    this.render(md, 'all');
+    if (this.onLayoutChanged) this.onLayoutChanged(copy);
+  }
+
   autoPackCurrentPage(modelData, pageIndex = 'all') {
     if (!modelData || !modelData.pages) return;
     const margin = parseFloat(modelData.parameters?.marginSecurity) || 5;
