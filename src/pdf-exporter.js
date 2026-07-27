@@ -53,15 +53,17 @@ export class PaperAlfaPdfExporter {
       page.parts.forEach(part => {
         const originX = part.layout ? part.layout.x : 105;
         const originY = part.layout ? part.layout.y : 148;
+        const rot = part.layout && part.layout.rotation ? part.layout.rotation : 0;
 
-        // Dibujar etiqueta técnica de la pieza
+        // Dibujar etiqueta técnica de la pieza (arriba del bounding box rotado o centro)
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(8);
         doc.setTextColor(60, 60, 60);
-        doc.text(part.name.toUpperCase(), originX - part.width / 2, originY - part.height / 2 - 3);
+        const labelPos = this.transformPoint(0, -part.height / 2 - 3, originX, originY, rot);
+        doc.text(part.name.toUpperCase(), labelPos.x - 10, labelPos.y);
 
         // Renderizar trazos vectoriales de la pieza
-        this.drawPartLines(doc, part, originX, originY);
+        this.drawPartLines(doc, part, originX, originY, rot);
       });
 
       // 4. Pie de página de seguridad 1:1
@@ -147,9 +149,25 @@ export class PaperAlfaPdfExporter {
   }
 
   /**
+   * Rota un punto (x, y) respecto al origen de la pieza por rotDeg grados
+   */
+  transformPoint(x, y, originX, originY, rotDeg = 0) {
+    if (!rotDeg) {
+      return { x: originX + x, y: originY + y };
+    }
+    const rad = (rotDeg * Math.PI) / 180;
+    const cos = Math.cos(rad);
+    const sin = Math.sin(rad);
+    return {
+      x: originX + (x * cos - y * sin),
+      y: originY + (x * sin + y * cos)
+    };
+  }
+
+  /**
    * Renderiza todos los segmentos y arcos de la pieza
    */
-  drawPartLines(doc, part, originX, originY) {
+  drawPartLines(doc, part, originX, originY, rotDeg = 0) {
     const lines = part.lines || {};
 
     // A) Primero las líneas de doblez (montaña y valle)
@@ -157,14 +175,14 @@ export class PaperAlfaPdfExporter {
       doc.setDrawColor(0, 102, 204); // Azul #0066CC
       doc.setLineWidth(0.12);        // ~0.3 pt
       doc.setLineDash([2, 1], 0);    // Punteado montaña
-      lines.mountainFolds.forEach(line => this.renderLineOrArc(doc, line, originX, originY));
+      lines.mountainFolds.forEach(line => this.renderLineOrArc(doc, line, originX, originY, rotDeg));
     }
 
     if (lines.valleyFolds) {
       doc.setDrawColor(204, 0, 0);   // Rojo #CC0000
       doc.setLineWidth(0.12);        // ~0.3 pt
       doc.setLineDash([1, 1], 0);    // Punteado valle
-      lines.valleyFolds.forEach(line => this.renderLineOrArc(doc, line, originX, originY));
+      lines.valleyFolds.forEach(line => this.renderLineOrArc(doc, line, originX, originY, rotDeg));
     }
 
     // A2) Marcas CAD técnicas (cruces X de centro y eje +)
@@ -179,7 +197,7 @@ export class PaperAlfaPdfExporter {
           doc.setLineWidth(0.12);
           doc.setLineDash([], 0);
         }
-        this.renderLineOrArc(doc, line, originX, originY);
+        this.renderLineOrArc(doc, line, originX, originY, rotDeg);
       });
     }
 
@@ -188,34 +206,34 @@ export class PaperAlfaPdfExporter {
       doc.setDrawColor(0, 0, 0);     // Negro puro
       doc.setLineWidth(0.18);        // ~0.5 pt continuo
       doc.setLineDash([], 0);        // Línea continua
-      lines.cuts.forEach(line => this.renderLineOrArc(doc, line, originX, originY));
+      lines.cuts.forEach(line => this.renderLineOrArc(doc, line, originX, originY, rotDeg));
     }
   }
 
-  renderLineOrArc(doc, item, originX, originY) {
+  renderLineOrArc(doc, item, originX, originY, rotDeg = 0) {
     if (item.isArc) {
-      // jsPDF no tiene arco polar nativo simple en mm sin Bezier, aproximamos el arco por 36 segmentos precisos
       const steps = 36;
       const angleStep = (item.endAngle - item.startAngle) / steps;
-      let prevX = originX + item.cx + item.radius * Math.cos(item.startAngle);
-      let prevY = originY + item.cy + item.radius * Math.sin(item.startAngle);
+      let prevPt = this.transformPoint(
+        item.cx + item.radius * Math.cos(item.startAngle),
+        item.cy + item.radius * Math.sin(item.startAngle),
+        originX, originY, rotDeg
+      );
 
       for (let i = 1; i <= steps; i++) {
         const a = item.startAngle + i * angleStep;
-        const curX = originX + item.cx + item.radius * Math.cos(a);
-        const curY = originY + item.cy + item.radius * Math.sin(a);
-        doc.line(prevX, prevY, curX, curY);
-        prevX = curX;
-        prevY = curY;
+        const curPt = this.transformPoint(
+          item.cx + item.radius * Math.cos(a),
+          item.cy + item.radius * Math.sin(a),
+          originX, originY, rotDeg
+        );
+        doc.line(prevPt.x, prevPt.y, curPt.x, curPt.y);
+        prevPt = curPt;
       }
     } else {
-      // Segmento recto
-      doc.line(
-        originX + item.x1,
-        originY + item.y1,
-        originX + item.x2,
-        originY + item.y2
-      );
+      const p1 = this.transformPoint(item.x1, item.y1, originX, originY, rotDeg);
+      const p2 = this.transformPoint(item.x2, item.y2, originX, originY, rotDeg);
+      doc.line(p1.x, p1.y, p2.x, p2.y);
     }
   }
 

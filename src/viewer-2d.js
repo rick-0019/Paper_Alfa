@@ -66,12 +66,111 @@ export class PaperAlfaViewer2D {
     this.updateTransform();
   }
 
+  selectPart(part, partG) {
+    this.selectedPart = part;
+    this.selectedPartG = partG;
+    if (this.lastModelData) {
+      this.render(this.lastModelData, this.lastPageIndex);
+    }
+    if (this.onSelectPart) {
+      this.onSelectPart(part);
+    }
+  }
+
+  startDraggingPart(e, part, partG) {
+    let startMouseX = e.clientX;
+    let startMouseY = e.clientY;
+    const initialX = part.layout ? part.layout.x : 105;
+    const initialY = part.layout ? part.layout.y : 148;
+
+    const onMouseMove = (moveEvent) => {
+      const dx = (moveEvent.clientX - startMouseX) / this.zoom;
+      const dy = (moveEvent.clientY - startMouseY) / this.zoom;
+      if (!part.layout) part.layout = {};
+      part.layout.x = Number((initialX + dx).toFixed(1));
+      part.layout.y = Number((initialY + dy).toFixed(1));
+
+      const rot = part.layout.rotation || 0;
+      if (this.selectedPartG) {
+        this.selectedPartG.setAttribute('transform', `translate(${part.layout.x}, ${part.layout.y}) rotate(${rot})`);
+      }
+    };
+
+    const onMouseUp = () => {
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      if (this.selectedPartG) this.selectedPartG.style.cursor = 'grab';
+      if (this.onLayoutChanged) this.onLayoutChanged(part);
+    };
+
+    if (this.selectedPartG) this.selectedPartG.style.cursor = 'grabbing';
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+  }
+
+  rotateSelectedPart(deltaDeg) {
+    if (!this.selectedPart) return;
+    if (!this.selectedPart.layout) this.selectedPart.layout = {};
+    const curRot = this.selectedPart.layout.rotation || 0;
+    this.selectedPart.layout.rotation = (curRot + deltaDeg) % 360;
+    if (this.lastModelData) {
+      this.render(this.lastModelData, this.lastPageIndex);
+    }
+    if (this.onLayoutChanged) this.onLayoutChanged(this.selectedPart);
+  }
+
+  centerSelectedPartOnPage() {
+    if (!this.selectedPart) return;
+    if (!this.selectedPart.layout) this.selectedPart.layout = {};
+    this.selectedPart.layout.x = 105;
+    this.selectedPart.layout.y = 148;
+    if (this.lastModelData) {
+      this.render(this.lastModelData, this.lastPageIndex);
+    }
+    if (this.onLayoutChanged) this.onLayoutChanged(this.selectedPart);
+  }
+
+  autoPackCurrentPage(modelData, pageIndex = 0) {
+    if (!modelData || !modelData.pages) return;
+    const pages = modelData.pages;
+    const margin = parseFloat(modelData.parameters?.marginSecurity) || 5;
+    
+    const targetPages = (pageIndex === 'all' || pageIndex === -1) ? pages : [pages[pageIndex] || pages[0]];
+    
+    targetPages.forEach(page => {
+      if (!page || !page.parts) return;
+      let curX = margin + 25;
+      let curY = margin + 30;
+      let maxRowH = 0;
+
+      page.parts.forEach(part => {
+        const w = part.width || 60;
+        const h = part.height || 60;
+        if (curX + w / 2 > 210 - margin - 20) {
+          curX = margin + 25;
+          curY += maxRowH + 20;
+          maxRowH = 0;
+        }
+        if (!part.layout) part.layout = {};
+        part.layout.x = Math.round(curX + w / 2);
+        part.layout.y = Math.round(curY + h / 2);
+        curX += w + 15;
+        if (h > maxRowH) maxRowH = h;
+      });
+    });
+
+    this.render(modelData, pageIndex);
+    if (this.onLayoutChanged) this.onLayoutChanged();
+  }
+
   /**
    * Renderiza el modelo 2D en el SVG
    * @param {Object} modelData - Datos calculados por PaperAlfaGeometry
    * @param {number|string} pageIndex - Hoja A4 a mostrar ('all' para ver todas juntas)
    */
   render(modelData, pageIndex = 0) {
+    this.lastModelData = modelData;
+    this.lastPageIndex = pageIndex;
     if (!this.svg) return;
     this.svg.innerHTML = ''; // Limpiar lienzo
 
@@ -166,19 +265,32 @@ export class PaperAlfaViewer2D {
         const partG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         const originX = part.layout ? part.layout.x : 105;
         const originY = part.layout ? part.layout.y : 148;
+        const rot = part.layout && part.layout.rotation ? part.layout.rotation : 0;
 
-        partG.setAttribute('transform', `translate(${originX}, ${originY})`);
+        partG.setAttribute('transform', `translate(${originX}, ${originY}) rotate(${rot})`);
+
+        // Hitbox interactivo y resaltado de selección
+        const wBox = (part.width || 60) + 10;
+        const hBox = (part.height || 60) + 10;
+        const isSelected = (this.selectedPart && this.selectedPart.name === part.name);
+        const hitRect = this.createSVGRect(-wBox / 2, -hBox / 2, wBox, hBox, isSelected ? 'rgba(0, 240, 255, 0.1)' : 'rgba(255,255,255,0.001)', isSelected ? 0.8 : 0.2);
+        hitRect.setAttribute('stroke', isSelected ? '#00F0FF' : 'transparent');
+        if (isSelected) {
+          hitRect.setAttribute('stroke-dasharray', '4, 2');
+          this.selectedPartG = partG;
+        }
+        partG.appendChild(hitRect);
 
         // Etiqueta de la pieza
         const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
         label.setAttribute('x', 0);
         label.setAttribute('y', -part.height / 2 - 4);
         label.setAttribute('text-anchor', 'middle');
-        label.setAttribute('fill', '#334155');
+        label.setAttribute('fill', isSelected ? '#00F0FF' : '#334155');
         label.setAttribute('font-family', 'JetBrains Mono, monospace');
         label.setAttribute('font-size', '4.5');
         label.setAttribute('font-weight', 'bold');
-        label.textContent = `${part.name.toUpperCase()} (${Math.round(part.width)}x${Math.round(part.height)}mm)`;
+        label.textContent = `${part.name.toUpperCase()} (${Math.round(part.width)}x${Math.round(part.height)}mm)${rot ? ` [${rot}°]` : ''}`;
         partG.appendChild(label);
 
         // Renderizar trazos
@@ -191,6 +303,15 @@ export class PaperAlfaViewer2D {
         (lines.markings || []).forEach(l => partG.appendChild(this.createSVGPathOrLine(l, l.color || '#FF3B30', (l.width || 0.45).toString(), l.type === 'centroid-x' ? '1, 0.5' : 'none')));
         // Cortes exteriores (negro continuo)
         (lines.cuts || []).forEach(l => partG.appendChild(this.createSVGPathOrLine(l, '#090D14', '0.55', 'none')));
+
+        partG.style.cursor = 'grab';
+        partG.addEventListener('mousedown', (e) => {
+          e.stopPropagation();
+          if (e.button === 0) {
+            this.selectPart(part, partG);
+            this.startDraggingPart(e, part, partG);
+          }
+        });
 
         partsGroup.appendChild(partG);
       });

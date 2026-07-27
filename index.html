@@ -261,6 +261,20 @@
         <!-- SELECTOR DE HOJAS A4 BIEN VISIBLE CON BOTÓN "VER TODAS" -->
         <div id="page-selector-container" class="page-selector-bar" style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;"></div>
 
+        <!-- BARRA DE OPTIMIZACIÓN Y ROTACIÓN ESTILO PEPAKURA (DESPIECE 2D) -->
+        <div id="pepakura-toolbar" class="pepakura-toolbar" style="display: flex; gap: 4px; align-items: center; background: rgba(0,240,255,0.06); border: 1px solid rgba(0,240,255,0.25); padding: 4px 10px; border-radius: 6px; flex-wrap: wrap;">
+          <span style="font-size: 11px; color: var(--accent-cyan); font-weight: bold;">🧩 Seleccionada:</span>
+          <span id="pep-selected-name" style="font-size: 11px; color: #FFFFFF; min-width: 60px; font-family: 'JetBrains Mono', monospace;">Ninguna</span>
+          <div style="width: 1px; height: 16px; background: var(--border-subtle); margin: 0 4px;"></div>
+          <button id="btn-pep-rot-ccw-90" class="btn-preset" style="padding: 4px 6px; font-size: 11px;" title="Rotar 90° a la izquierda">↶ -90°</button>
+          <button id="btn-pep-rot-ccw-15" class="btn-preset" style="padding: 4px 6px; font-size: 11px;" title="Rotar 15° a la izquierda">↶ -15°</button>
+          <button id="btn-pep-rot-cw-15" class="btn-preset" style="padding: 4px 6px; font-size: 11px;" title="Rotar 15° a la derecha">↷ +15°</button>
+          <button id="btn-pep-rot-cw-90" class="btn-preset" style="padding: 4px 6px; font-size: 11px;" title="Rotar 90° a la derecha">↷ +90°</button>
+          <div style="width: 1px; height: 16px; background: var(--border-subtle); margin: 0 4px;"></div>
+          <button id="btn-pep-center-page" class="btn-preset" style="padding: 4px 8px; font-size: 11px;" title="Centrar pieza en la hoja A4">⌖ Centrar</button>
+          <button id="btn-pep-auto-pack" class="btn-preset" style="padding: 4px 10px; font-size: 11px; background: rgba(0,240,255,0.18); color: var(--accent-cyan); font-weight: bold; border: 1px solid var(--accent-cyan);" title="Optimizar y acomodar automáticamente todas las piezas en la hoja">⚡ Auto-Acomodar</button>
+        </div>
+
         <div id="layout-status-badge" class="status-badge status-ok">
           <span class="status-dot"></span>
           <span>100% ESCALA 1:1 EN A4</span>

@@ -43,11 +43,36 @@ class PaperAlfaApp {
     this.bindToolbarButtons();
     this.bindPhaseTabs();
     this.bindPresetButtons();
+    this.setupPepakuraToolbar();
 
     // Cálculo inicial (Cono Truncado por defecto)
     this.recalculateAndRender();
 
     console.log('PAPER ALFA Ingeniería Paramétrica iniciada correctamente (A4 1:1)');
+  }
+
+  setupPepakuraToolbar() {
+    if (!this.viewer2D) return;
+
+    this.viewer2D.onSelectPart = (part) => {
+      const el = document.getElementById('pep-selected-name');
+      if (el) {
+        el.textContent = part ? `${part.name.toUpperCase()} (${Math.round(part.width)}x${Math.round(part.height)}mm)` : 'Ninguna';
+        el.style.color = part ? '#00F0FF' : '#FFFFFF';
+      }
+    };
+
+    const bindPepBtn = (id, fn) => {
+      const btn = document.getElementById(id);
+      if (btn) btn.addEventListener('click', fn);
+    };
+
+    bindPepBtn('btn-pep-rot-ccw-90', () => this.viewer2D.rotateSelectedPart(-90));
+    bindPepBtn('btn-pep-rot-ccw-15', () => this.viewer2D.rotateSelectedPart(-15));
+    bindPepBtn('btn-pep-rot-cw-15', () => this.viewer2D.rotateSelectedPart(15));
+    bindPepBtn('btn-pep-rot-cw-90', () => this.viewer2D.rotateSelectedPart(90));
+    bindPepBtn('btn-pep-center-page', () => this.viewer2D.centerSelectedPartOnPage());
+    bindPepBtn('btn-pep-auto-pack', () => this.viewer2D.autoPackCurrentPage(this.currentModelData, this.currentPageIndex));
   }
 
   bindParameterControls() {
@@ -143,6 +168,8 @@ class PaperAlfaApp {
         btnView3D.classList.remove('active');
         if (container2D) container2D.classList.remove('hidden');
         if (container3D) container3D.classList.add('hidden');
+        const pepToolbar = document.getElementById('pepakura-toolbar');
+        if (pepToolbar) pepToolbar.style.display = 'flex';
       });
 
       btnView3D.addEventListener('click', () => {
@@ -150,6 +177,8 @@ class PaperAlfaApp {
         btnView2D.classList.remove('active');
         if (container3D) container3D.classList.remove('hidden');
         if (container2D) container2D.classList.add('hidden');
+        const pepToolbar = document.getElementById('pepakura-toolbar');
+        if (pepToolbar) pepToolbar.style.display = 'none';
         if (this.viewer3D && this.viewer3D.onWindowResize) {
           this.viewer3D.onWindowResize();
         }
