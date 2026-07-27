@@ -618,17 +618,33 @@ class PaperAlfaApp {
     const minNeg = Math.min(...this.editingPoints.map(p => p.y));
     const useLeftHalf = (Math.abs(minNeg) > maxPos && maxPos <= 0.5);
     
-    const sourceHalf = useLeftHalf
-      ? this.editingPoints.filter(p => p.y <= 0.1)
-      : this.editingPoints.filter(p => p.y >= -0.1);
+    let sourceHalf = useLeftHalf
+      ? this.editingPoints.filter(p => p.y <= 0.2)
+      : this.editingPoints.filter(p => p.y >= -0.2);
 
     if (sourceHalf.length < 2) return;
 
-    // 2. Calcular Z central para ordenar por ángulo polar respecto al centro (evita cruces en líneas horizontales Z=40 o Z=-40)
+    // 2. Limpiar puntos intermedios en el eje central Y=0 (puntos que el usuario dibujó para cerrar la plantilla de media hoja)
+    const centerPts = sourceHalf.filter(p => Math.abs(p.y) <= 0.2);
+    if (centerPts.length > 2) {
+      const maxZ = Math.max(...centerPts.map(p => p.z));
+      const minZ = Math.min(...centerPts.map(p => p.z));
+      // Solo conservar en el eje Y=0 el punto más alto (techo) y el más bajo (piso)
+      sourceHalf = sourceHalf.filter(p => {
+        if (Math.abs(p.y) <= 0.2) {
+          return (Math.abs(p.z - maxZ) <= 0.2 || Math.abs(p.z - minZ) <= 0.2);
+        }
+        return true;
+      });
+    }
+
+    if (sourceHalf.length < 2) return;
+
+    // 3. Calcular Z central para ordenar por ángulo polar respecto al centro (evita cruces en líneas horizontales)
     const cz = sourceHalf.reduce((sum, p) => sum + p.z, 0) / sourceHalf.length;
     const getAngle = (p) => Math.atan2(p.z - cz, Math.abs(p.y));
     
-    // 3. Ordenar el lado derecho en sentido de las agujas del reloj desde el techo (+90°) hasta la panza (-90°)
+    // 4. Ordenar el lado derecho en sentido de las agujas del reloj desde el techo (+90°) hasta la panza (-90°)
     const rightSide = sourceHalf
       .map(p => ({ y: Number(Math.abs(p.y).toFixed(1)), z: p.z }))
       .sort((a, b) => {
@@ -637,11 +653,10 @@ class PaperAlfaApp {
         if (Math.abs(angA - angB) > 1e-4) {
           return angB - angA; // Descendente: desde techo (+1.57 rad) a panza (-1.57 rad)
         }
-        // Si dos puntos están a la misma altura/ángulo (ej. techo plano), ordenar por distancia al centro (Y)
         return b.y - a.y;
       });
 
-    // 4. El lado izquierdo recorre en orden inverso (desde panza hasta techo) y con Y negativa
+    // 5. El lado izquierdo recorre en orden inverso (desde panza hasta techo) y con Y negativa
     const leftSide = rightSide
       .slice()
       .reverse()
