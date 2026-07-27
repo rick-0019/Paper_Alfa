@@ -15,58 +15,39 @@ export class PaperAlfaPdfExporter {
    */
   getPagesForExport(modelData) {
     if (!modelData || !modelData.pages) return [];
+
+    // CLON PROFUNDO: ninguna referencia compartida con el modelo vivo
+    const clonedPages = JSON.parse(JSON.stringify(modelData.pages));
+
+    // Aplanar todas las piezas clonadas
     const allParts = [];
-    modelData.pages.forEach(page => {
+    clonedPages.forEach(page => {
       if (page && page.parts) {
-        page.parts.forEach(part => {
-          allParts.push({
-            ...part,
-            layout: part.layout ? { ...part.layout } : { x: 105, y: 148, rotation: 0, pageIndex: 0 }
-          });
-        });
+        allParts.push(...page.parts);
       }
     });
     if (allParts.length === 0) return [];
 
-    const spacing = 25;
-    const pageH = 297;
-    const maxPageIndex = Math.max(
-      0,
-      ...allParts.map(p => {
-        const y = p.layout.y || 0;
-        return y >= pageH ? Math.floor(y / (pageH + spacing)) : (p.layout.pageIndex || 0);
-      })
-    );
-
-    const tempPages = [];
-    for (let i = 0; i <= maxPageIndex; i++) {
-      tempPages.push({ pageNum: i + 1, parts: [], overflow: false });
+    // Reasignar piezas a sus hojas por pageIndex (sin tocar el modelo original)
+    const maxIdx = Math.max(0, ...allParts.map(p => (p.layout && p.layout.pageIndex) || 0));
+    const exportPages = [];
+    for (let i = 0; i <= maxIdx; i++) {
+      exportPages.push({ pageNum: i + 1, parts: [], overflow: false });
     }
 
     allParts.forEach(part => {
-      let idx = part.layout.pageIndex || 0;
-      if (part.layout.y >= pageH) {
-        idx = Math.floor(part.layout.y / (pageH + spacing));
-        part.layout.y = part.layout.y % (pageH + spacing);
+      if (!part.layout) part.layout = { x: 105, y: 148, rotation: 0, pageIndex: 0 };
+      const idx = part.layout.pageIndex || 0;
+      if (!exportPages[idx]) {
+        exportPages[idx] = { pageNum: idx + 1, parts: [], overflow: false };
       }
-      if (!tempPages[idx]) {
-        tempPages[idx] = { pageNum: idx + 1, parts: [], overflow: false };
-      }
-      part.layout.pageIndex = idx;
-      tempPages[idx].parts.push(part);
+      exportPages[idx].parts.push(part);
     });
 
-    const nonEmptyPages = tempPages.filter(p => p && p.parts && p.parts.length > 0);
-    if (nonEmptyPages.length > 0) {
-      nonEmptyPages.forEach((p, idx) => {
-        p.pageNum = idx + 1;
-        p.parts.forEach(part => {
-          part.layout.pageIndex = idx;
-        });
-      });
-      return nonEmptyPages;
-    }
-    return tempPages;
+    // Filtrar páginas vacías y renumerar
+    const nonEmpty = exportPages.filter(p => p && p.parts && p.parts.length > 0);
+    nonEmpty.forEach((p, i) => { p.pageNum = i + 1; });
+    return nonEmpty.length > 0 ? nonEmpty : [{ pageNum: 1, parts: [], overflow: false }];
   }
 
   /**

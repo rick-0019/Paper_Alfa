@@ -105,6 +105,45 @@ export class PaperAlfaViewer2D {
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('mouseup', onMouseUp);
       if (this.selectedPartG) this.selectedPartG.style.cursor = 'grab';
+
+      // FIX RAÍZ: Si estamos en vista 'all', detectar si la pieza cruzó de hoja
+      if (this.lastPageIndex === 'all' && this.lastModelData && this.lastModelData.pages) {
+        const spacing = 25;
+        const pageH = this.A4_HEIGHT;
+        const absY = part.layout.y;
+        const currentPageIdx = part.layout.pageIndex || 0;
+
+        // Calcular en qué hoja cayó visualmente (considerando el offsetY de cada hoja)
+        let newPageIdx = 0;
+        const pages = this.lastModelData.pages;
+        for (let i = 0; i < pages.length; i++) {
+          const offsetY = i * (pageH + spacing);
+          if (absY >= offsetY && absY < offsetY + pageH) {
+            newPageIdx = i;
+            break;
+          } else if (absY >= offsetY + pageH && i === pages.length - 1) {
+            newPageIdx = i;
+          }
+        }
+
+        if (newPageIdx !== currentPageIdx && pages[newPageIdx]) {
+          // Quitar de la página original
+          pages.forEach(page => {
+            if (page && page.parts) {
+              const idx = page.parts.indexOf(part);
+              if (idx !== -1) page.parts.splice(idx, 1);
+            }
+          });
+          // Ajustar coordenada Y relativa a la nueva hoja
+          const newOffsetY = newPageIdx * (pageH + spacing);
+          part.layout.y = part.layout.y - newOffsetY;
+          part.layout.pageIndex = newPageIdx;
+          pages[newPageIdx].parts.push(part);
+          // Re-renderizar para que quede consistente
+          this.render(this.lastModelData, this.lastPageIndex);
+        }
+      }
+
       if (this.onLayoutChanged) this.onLayoutChanged(part);
     };
 
