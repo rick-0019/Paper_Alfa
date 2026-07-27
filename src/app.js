@@ -224,6 +224,24 @@ class PaperAlfaApp {
     if (btnCloseModal && modalJson) {
       btnCloseModal.addEventListener('click', () => modalJson.classList.add('hidden'));
     }
+
+    // Guardar / Cargar proyecto .palfa
+    const btnSave = document.getElementById('btn-save-project');
+    if (btnSave) {
+      btnSave.addEventListener('click', () => this.saveProject());
+    }
+    const btnLoad = document.getElementById('btn-load-project');
+    const inputLoad = document.getElementById('input-load-project');
+    if (btnLoad && inputLoad) {
+      btnLoad.addEventListener('click', () => inputLoad.click());
+      inputLoad.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          this.loadProject(file);
+          inputLoad.value = '';
+        }
+      });
+    }
   }
 
   bindPhaseTabs() {
@@ -1551,6 +1569,179 @@ class PaperAlfaApp {
     };
 
     elJsonCode.textContent = JSON.stringify(exportSpec, null, 2);
+  }
+
+  saveProject() {
+    if (!this.currentModelData) {
+      alert('No hay un modelo activo para guardar.');
+      return;
+    }
+
+    const type = document.getElementById('select-primitive')?.value || 'truncated_cone';
+    const project = {
+      $format: 'paper-alfa-project',
+      version: '1.0.0',
+      savedAt: new Date().toISOString(),
+      activePhase: this.activePhase || 'phase1',
+      primitiveType: type,
+      parameters: {
+        d1: parseFloat(document.getElementById('input-d1')?.value) || 80,
+        d2: parseFloat(document.getElementById('input-d2')?.value) || 45,
+        sides: parseInt(document.getElementById('input-sides')?.value) || 6,
+        rings: parseInt(document.getElementById('input-rings')?.value) || 5,
+        height: parseFloat(document.getElementById('input-h')?.value) || 90,
+        tabHeight: parseFloat(document.getElementById('input-tab-h')?.value) || 6,
+        teethPerArc: parseInt(document.getElementById('input-teeth')?.value) || 16,
+        marginSecurity: parseFloat(document.getElementById('input-margin')?.value) || 5,
+        noTabs: document.getElementById('check-no-tabs')?.checked || false,
+        includeTopCap: document.getElementById('check-top-cap')?.checked !== false,
+        includeBottomCap: document.getElementById('check-bottom-cap')?.checked !== false
+      },
+      pages: (this.currentModelData.pages || []).map(page => ({
+        pageNum: page.pageNum,
+        parts: (page.parts || []).map(part => ({
+          name: part.name,
+          id: part.id,
+          width: part.width,
+          height: part.height,
+          layout: part.layout ? { ...part.layout } : { x: 105, y: 148, rotation: 0, pageIndex: 0 }
+        }))
+      })),
+      loftStations: this.activePhase === 'phase2' ? JSON.parse(JSON.stringify(this.loftStations || [])) : undefined
+    };
+
+    const json = JSON.stringify(project, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+
+    const name = `PaperAlfa_${type}_${new Date().toISOString().slice(0, 10)}.palfa`;
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  loadProject(file) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const project = JSON.parse(e.target.result);
+        if (!project.$format || project.$format !== 'paper-alfa-project') {
+          alert('El archivo seleccionado no es un proyecto Paper Alfa válido (.palfa).');
+          return;
+        }
+
+        // 1. Restaurar tipo de primitiva
+        const selPrim = document.getElementById('select-primitive');
+        if (selPrim && project.primitiveType) {
+          selPrim.value = project.primitiveType;
+          selPrim.dispatchEvent(new Event('change'));
+        }
+
+        // 2. Restaurar parámetros en los inputs del DOM
+        const p = project.parameters || {};
+        const setInput = (id, val) => {
+          const el = document.getElementById(id);
+          if (el && val !== undefined) {
+            if (el.type === 'checkbox') {
+              el.checked = !!val;
+            } else {
+              el.value = val;
+            }
+          }
+        };
+        setInput('input-d1', p.d1);
+        setInput('input-d2', p.d2);
+        setInput('input-sides', p.sides);
+        setInput('input-rings', p.rings);
+        setInput('input-h', p.height);
+        setInput('input-tab-h', p.tabHeight);
+        setInput('input-teeth', p.teethPerArc);
+        setInput('input-margin', p.marginSecurity);
+        setInput('check-no-tabs', p.noTabs);
+        setInput('check-top-cap', p.includeTopCap);
+        setInput('check-bottom-cap', p.includeBottomCap);
+
+        // 3. Restaurar fase activa
+        if (project.activePhase) {
+          this.switchPhase(project.activePhase);
+          const tabs = document.querySelectorAll('.phase-tab');
+          tabs.forEach(t => {
+            t.classList.toggle('active', t.dataset.phase === project.activePhase);
+          });
+        }
+
+        // 4. Restaurar loft stations si corresponde
+        if (project.loftStations && project.activePhase === 'phase2') {
+          this.loftStations = project.loftStations;
+        }
+
+        // 5. Recalcular geometría con los parámetros restaurados
+        this.recalculateAndRender();
+
+        // 6. Restaurar posiciones, rotaciones y asignaciones de piezas
+        if (project.pages && this.currentModelData && this.currentModelData.pages) {
+          const savedLayouts = {};
+          project.pages.forEach(page => {
+            (page.parts || []).forEach(part => {
+              savedLayouts[part.name] = {
+                layout: part.layout,
+                pageIndex: part.layout?.pageIndex || 0
+              };
+            });
+          });
+
+          // Reconstruir páginas según el proyecto guardado
+          const maxPageIdx = Math.max(0, ...Object.values(savedLayouts).map(s => s.pageIndex));
+          while (this.currentModelData.pages.length <= maxPageIdx) {
+            this.currentModelData.pages.push({ pageNum: this.currentModelData.pages.length + 1, parts: [], overflow: false });
+          }
+
+          // Recopilar todas las piezas
+          const allParts = [];
+          this.currentModelData.pages.forEach(page => {
+            if (page && page.parts) allParts.push(...page.parts);
+          });
+          this.currentModelData.pages.forEach(page => { if (page) page.parts = []; });
+
+          // Reasignar cada pieza a su hoja y posición guardada
+          allParts.forEach(part => {
+            const saved = savedLayouts[part.name];
+            if (saved && saved.layout) {
+              part.layout = { ...saved.layout };
+            }
+            const idx = part.layout?.pageIndex || 0;
+            if (this.currentModelData.pages[idx]) {
+              this.currentModelData.pages[idx].parts.push(part);
+            } else {
+              this.currentModelData.pages[0].parts.push(part);
+            }
+          });
+
+          if (this.currentModelData.metrics) {
+            this.currentModelData.metrics.pageCount = this.currentModelData.pages.length;
+          }
+
+          // Re-renderizar con las posiciones restauradas
+          this.currentPageIndex = 'all';
+          this.userSelectedSinglePage = false;
+          if (this.viewer2D) {
+            this.viewer2D.resetView();
+            this.viewer2D.render(this.currentModelData, 'all');
+          }
+          this.updateUIIndicators();
+        }
+
+        console.log(`PAPER ALFA: Proyecto "${file.name}" cargado exitosamente.`);
+      } catch (err) {
+        console.error('Error al cargar proyecto .palfa:', err);
+        alert('Error al leer el archivo .palfa. Verificá que sea un archivo válido.');
+      }
+    };
+    reader.readAsText(file);
   }
 }
 
