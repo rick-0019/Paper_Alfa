@@ -1469,6 +1469,19 @@ class PaperAlfaApp {
     this.updateUIIndicators();
   }
 
+  refreshLayoutUI(targetPageIndex) {
+    if (!this.currentModelData) return;
+    if (typeof targetPageIndex !== 'undefined') {
+      this.currentPageIndex = targetPageIndex;
+    } else if (typeof this.currentPageIndex === 'number' && this.currentPageIndex >= (this.currentModelData.pages?.length || 1)) {
+      this.currentPageIndex = Math.max(0, (this.currentModelData.pages?.length || 1) - 1);
+    }
+    if (this.viewer2D) {
+      this.viewer2D.render(this.currentModelData, this.currentPageIndex);
+    }
+    this.updateUIIndicators();
+  }
+
   updateUIIndicators() {
     if (!this.currentModelData) return;
     const metrics = this.currentModelData.metrics || {};
