@@ -370,9 +370,9 @@ class PaperAlfaApp {
       ],
       'preset-loft-intake': [
         { id: 1, x: 0, z: 0, d: 50, shape: 'rect', w: 50, h: 50 },
-        { id: 2, x: 50, z: 0, d: 60, shape: 'circle' },
-        { id: 3, x: 120, z: 0, d: 60, shape: 'circle' },
-        { id: 4, x: 170, z: 0, d: 40, shape: 'circle' }
+        { id: 2, x: 50, z: 0, d: 60, shape: 'rect', w: 60, h: 60 },
+        { id: 3, x: 120, z: 0, d: 60, shape: 'rect', w: 60, h: 60 },
+        { id: 4, x: 170, z: 0, d: 40, shape: 'rect', w: 40, h: 40 }
       ],
       'preset-loft-oval': [
         { id: 1, x: 0, z: 0, d: 20, shape: 'ellipse', w: 30, h: 15 },
