@@ -172,7 +172,8 @@ class PaperAlfaApp {
         this.exporter.exportA4PDF(this.currentModelData, {
           showRuler: document.getElementById('check-ruler')?.checked !== false,
           showTitleBlock: true,
-          marginSecurity: parseFloat(document.getElementById('input-margin')?.value) || 5
+          marginSecurity: parseFloat(document.getElementById('input-margin')?.value) || 5,
+          hideLabels: this.viewer2D ? this.viewer2D.hideLabels : false
         });
       });
     }

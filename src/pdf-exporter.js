@@ -96,11 +96,13 @@ export class PaperAlfaPdfExporter {
         const rot = part.layout && part.layout.rotation ? part.layout.rotation : 0;
 
         // Dibujar etiqueta técnica de la pieza (arriba del bounding box rotado o centro)
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(8);
-        doc.setTextColor(60, 60, 60);
-        const labelPos = this.transformPoint(0, -part.height / 2 - 3, originX, originY, rot);
-        doc.text(part.name.toUpperCase(), labelPos.x - 10, labelPos.y);
+        if (!options.hideLabels) {
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(8);
+          doc.setTextColor(60, 60, 60);
+          const labelPos = this.transformPoint(0, -part.height / 2 - 3, originX, originY, rot);
+          doc.text(part.name.toUpperCase(), labelPos.x - 10, labelPos.y);
+        }
 
         // Renderizar trazos vectoriales de la pieza
         this.drawPartLines(doc, part, originX, originY, rot);
