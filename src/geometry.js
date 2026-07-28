@@ -334,11 +334,26 @@ export class PaperAlfaGeometry {
     } else if (shape === 'rect') {
       const w = station.w || 60;
       const h = station.h || 40;
-      raw.push({ y: cy - w/2, z: cz - h/2 });
-      raw.push({ y: cy + w/2, z: cz - h/2 });
-      raw.push({ y: cy + w/2, z: cz + h/2 });
-      raw.push({ y: cy - w/2, z: cz + h/2 });
-      return this.sampleEquidistantPolyline(raw, N);
+      const pts = [];
+      const m = Math.max(1, Math.floor(N / 4));
+      
+      // Comenzar en el centro inferior (0, -h/2) para alinear con círculos que empiezan en -PI/2
+      // Recorrido en sentido antihorario
+      // 1. Mitad derecha del borde inferior
+      for(let i=0; i<m/2; i++) pts.push({ y: cy + (w/2)*(i/(m/2)), z: cz - h/2 });
+      // 2. Borde derecho
+      for(let i=0; i<m; i++) pts.push({ y: cy + w/2, z: cz - h/2 + h*(i/m) });
+      // 3. Borde superior
+      for(let i=0; i<m; i++) pts.push({ y: cy + w/2 - w*(i/m), z: cz + h/2 });
+      // 4. Borde izquierdo
+      for(let i=0; i<m; i++) pts.push({ y: cy - w/2, z: cz + h/2 - h*(i/m) });
+      // 5. Mitad izquierda del borde inferior
+      for(let i=0; i<m/2; i++) pts.push({ y: cy - w/2 + (w/2)*(i/(m/2)), z: cz - h/2 });
+      
+      while(pts.length < N) pts.push({ ...pts[pts.length - 1] });
+      pts.length = N; // Asegurar exactamente N puntos
+      pts.push({ ...pts[0] }); // Cerrar el loop
+      return pts;
     } else if (shape === 'rounded_rect') {
       const w = station.w || 60;
       const h = station.h || 40;
@@ -361,11 +376,26 @@ export class PaperAlfaGeometry {
       const d = station.d || 60;
       const sides = Math.max(3, parseInt(station.sides) || 6);
       const rad = d / 2;
+      const pts = [];
+      const m = Math.max(1, Math.floor(N / sides));
+      
       for (let i = 0; i < sides; i++) {
-        const phi = (i / sides) * 2 * Math.PI - Math.PI / 2;
-        raw.push({ y: cy + rad * Math.cos(phi), z: cz + rad * Math.sin(phi) });
+        const phi1 = (i / sides) * 2 * Math.PI - Math.PI / 2;
+        const phi2 = ((i + 1) / sides) * 2 * Math.PI - Math.PI / 2;
+        const p1 = { y: cy + rad * Math.cos(phi1), z: cz + rad * Math.sin(phi1) };
+        const p2 = { y: cy + rad * Math.cos(phi2), z: cz + rad * Math.sin(phi2) };
+        
+        for (let j = 0; j < m; j++) {
+           pts.push({
+             y: p1.y + (p2.y - p1.y) * (j / m),
+             z: p1.z + (p2.z - p1.z) * (j / m)
+           });
+        }
       }
-      return this.sampleEquidistantPolyline(raw, N);
+      while(pts.length < N) pts.push({ ...pts[pts.length - 1] });
+      pts.length = N;
+      pts.push({ ...pts[0] });
+      return pts;
     } else if (shape === 'airfoil') {
       const c = station.w || 80;
       const t = (station.h || 12) / 100;
