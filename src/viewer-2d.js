@@ -514,7 +514,10 @@ export class PaperAlfaViewer2D {
         label.setAttribute('font-family', 'JetBrains Mono, monospace');
         label.setAttribute('font-size', '4.5');
         label.setAttribute('font-weight', 'bold');
-        label.textContent = `${part.name.toUpperCase()} (${Math.round(part.width)}x${Math.round(part.height)}mm)${rot ? ` [${rot}°]` : ''}`;
+        
+        const dispW = part.boundingBox ? part.boundingBox.width : part.width;
+        const dispH = part.boundingBox ? part.boundingBox.height : part.height;
+        label.textContent = `${part.name.toUpperCase()} (${Math.round(dispW)}x${Math.round(dispH)}mm)${rot ? ` [${rot}°]` : ''}`;
         
         if (!this.hideLabels) {
           partG.appendChild(label);
