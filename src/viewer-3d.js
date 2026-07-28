@@ -62,16 +62,20 @@ export class PaperAlfaViewer3D {
       this.controls.target.set(0, 0, 0);
     }
 
-    // Adaptar tamaño al cambiar ventana
-    window.addEventListener('resize', () => this.onWindowResize());
+    // Adaptar tamaño dinámicamente con ResizeObserver (mucho más robusto que window resize)
+    const observer = new ResizeObserver(() => {
+      this.onWindowResize();
+    });
+    observer.observe(this.canvas.parentElement);
 
     this.animate();
   }
 
   onWindowResize() {
     if (!this.canvas || !this.camera || !this.renderer) return;
-    const width = this.canvas.clientWidth;
-    const height = this.canvas.clientHeight;
+    const width = this.canvas.parentElement.clientWidth;
+    const height = this.canvas.parentElement.clientHeight;
+    if (width === 0 || height === 0) return; // No redimensionar si está oculto
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(width, height);
