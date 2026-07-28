@@ -1,0 +1,154 @@
+{
+  "$format": "paper-alfa-project",
+  "version": "1.0.0",
+  "savedAt": "2026-07-28T04:23:18.631Z",
+  "activePhase": "phase2",
+  "primitiveType": "truncated_cone",
+  "parameters": {
+    "d1": 65,
+    "d2": 30,
+    "sides": 6,
+    "rings": 5,
+    "height": 40,
+    "tabHeight": 6,
+    "teethPerArc": 16,
+    "marginSecurity": 5,
+    "noTabs": false,
+    "includeTopCap": true,
+    "includeBottomCap": true
+  },
+  "pages": [
+    {
+      "pageNum": 1,
+      "parts": [
+        {
+          "name": "Sección 1 (D=50 a 60, L=50)",
+          "id": "loft-sec-1",
+          "width": 152.5327558644052,
+          "height": 169.67288637302602,
+          "layout": {
+            "pageIndex": 0,
+            "x": 96,
+            "y": 110,
+            "rotation": 0
+          }
+        },
+        {
+          "name": "Sección 2 (D=60 a 60, L=70)",
+          "id": "loft-sec-2",
+          "width": 252.0000000000007,
+          "height": 82.00000000000112,
+          "layout": {
+            "pageIndex": 0,
+            "x": 146,
+            "y": 251,
+            "rotation": 0
+          }
+        }
+      ]
+    },
+    {
+      "pageNum": 2,
+      "parts": [
+        {
+          "name": "Sección 3 (D=60 a 40, L=50)",
+          "id": "loft-sec-3",
+          "width": 119.33995530538854,
+          "height": 181.02174819438017,
+          "layout": {
+            "pageIndex": 1,
+            "x": 80,
+            "y": 116,
+            "rotation": 0
+          }
+        },
+        {
+          "name": "Cuaderna 1 (RECT, X=0mm)",
+          "id": "loft-cap-1",
+          "width": 54,
+          "height": 29,
+          "layout": {
+            "pageIndex": 1,
+            "x": 179,
+            "y": 38,
+            "rotation": 0
+          }
+        },
+        {
+          "name": "Cuaderna 2 (RECT, X=50mm)",
+          "id": "loft-cap-2",
+          "width": 64,
+          "height": 64,
+          "layout": {
+            "pageIndex": 1,
+            "x": 50,
+            "y": 251,
+            "rotation": 0
+          }
+        },
+        {
+          "name": "Cuaderna 3 (RECT, X=120mm)",
+          "id": "loft-cap-3",
+          "width": 64,
+          "height": 64,
+          "layout": {
+            "pageIndex": 1,
+            "x": 125,
+            "y": 251,
+            "rotation": 0
+          }
+        },
+        {
+          "name": "Cuaderna 4 (RECT, X=170mm)",
+          "id": "loft-cap-4",
+          "width": 24,
+          "height": 44,
+          "layout": {
+            "pageIndex": 1,
+            "x": 180,
+            "y": 241,
+            "rotation": 0
+          }
+        }
+      ]
+    }
+  ],
+  "loftStations": [
+    {
+      "id": 1,
+      "x": 0,
+      "z": 0,
+      "d": 50,
+      "shape": "rect",
+      "w": 50,
+      "h": 25
+    },
+    {
+      "id": 2,
+      "x": 50,
+      "z": 0,
+      "d": 60,
+      "shape": "rect",
+      "w": 60,
+      "h": 60
+    },
+    {
+      "id": 3,
+      "x": 120,
+      "z": 0,
+      "d": 60,
+      "shape": "rect",
+      "w": 60,
+      "h": 60
+    },
+    {
+      "id": 4,
+      "x": 170,
+      "z": 0,
+      "d": 40,
+      "shape": "rect",
+      "w": 20,
+      "h": 40
+    }
+  ]
+}

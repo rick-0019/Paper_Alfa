@@ -1,0 +1,63 @@
+{
+  "$format": "paper-alfa-project",
+  "version": "1.0.0",
+  "savedAt": "2026-07-28T04:25:53.557Z",
+  "activePhase": "phase1",
+  "primitiveType": "truncated_cone",
+  "parameters": {
+    "d1": 50,
+    "d2": 30,
+    "sides": 6,
+    "rings": 5,
+    "height": 40,
+    "tabHeight": 6,
+    "teethPerArc": 16,
+    "marginSecurity": 5,
+    "noTabs": true,
+    "includeTopCap": true,
+    "includeBottomCap": true
+  },
+  "pages": [
+    {
+      "pageNum": 1,
+      "parts": [
+        {
+          "name": "Desarrollo Lateral (Manto)",
+          "id": "mantle",
+          "width": 58.332099315736386,
+          "height": 142.31563244965614,
+          "layout": {
+            "pageIndex": 0,
+            "x": 49,
+            "y": 96,
+            "rotation": 0
+          }
+        },
+        {
+          "name": "Tapa Superior (D=30.0mm)",
+          "id": "top-cap",
+          "width": 34,
+          "height": 34,
+          "layout": {
+            "pageIndex": 0,
+            "x": 108,
+            "y": 40,
+            "rotation": 0
+          }
+        },
+        {
+          "name": "Tapa Inferior (D=50.0mm)",
+          "id": "bottom-cap",
+          "width": 54,
+          "height": 54,
+          "layout": {
+            "pageIndex": 0,
+            "x": 163,
+            "y": 50,
+            "rotation": 0
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -124,6 +124,7 @@ export class PaperAlfaViewer3D {
 
     const type = params.type || 'truncated_cone';
     this.mesh = new window.THREE.Group();
+    let maxDim = 100;
 
     // Material tipo papel opalina mate de modelismo
     const material = new window.THREE.MeshStandardMaterial({
@@ -148,6 +149,9 @@ export class PaperAlfaViewer3D {
       
       const minX = stations[0].x;
       const maxX = stations[stations.length - 1].x;
+      const length = Math.abs(maxX - minX);
+      const maxD = Math.max(...stations.map(s => s.d || s.w || 50));
+      maxDim = Math.max(length, maxD);
       const centerX = (minX + maxX) / 2;
 
       const zs = stations.map(s => s.z || 0);
@@ -243,6 +247,7 @@ export class PaperAlfaViewer3D {
       const d2 = type === 'cone' || type === 'pyramid' ? 0 : (parseFloat(params.d2) || 45);
       const h = parseFloat(params.height) || 90;
       const sides = parseInt(params.sides) || 6;
+      maxDim = Math.max(d1, d2, h);
 
       const rBottom = d1 / 2;
       const rTop = d2 / 2;
@@ -270,7 +275,6 @@ export class PaperAlfaViewer3D {
     this.scene.add(this.mesh);
 
     // Ajustar objetivo de cámara para que el modelo quede centrado y visible con elegancia
-    const maxDim = Math.max(d1, d2, h);
     if (this.controls) {
       this.controls.target.set(0, 0, 0);
       this.camera.position.set(maxDim * 1.5, maxDim * 1.2, maxDim * 1.8);
