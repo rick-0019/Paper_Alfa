@@ -509,7 +509,7 @@ class PaperAlfaApp {
     this.loftStations.forEach((station, index) => {
       const row = document.createElement('div');
       row.style.display = 'flex';
-      row.style.gap = '6px';
+      row.style.gap = '3px';
       row.style.alignItems = 'center';
       
       const numLabel = document.createElement('span');
@@ -522,7 +522,7 @@ class PaperAlfaApp {
       const inputX = document.createElement('input');
       inputX.type = 'number';
       inputX.value = station.x;
-      inputX.style.width = '68px';
+      inputX.style.width = '48px';
       inputX.placeholder = 'X';
       inputX.title = 'Posición X en el eje (mm)';
       inputX.addEventListener('input', (e) => {
@@ -533,7 +533,7 @@ class PaperAlfaApp {
       const inputZ = document.createElement('input');
       inputZ.type = 'number';
       inputZ.value = station.z || 0;
-      inputZ.style.width = '55px';
+      inputZ.style.width = '42px';
       inputZ.placeholder = 'Z';
       inputZ.title = 'Descentrado Z / Elevación en mm';
       inputZ.addEventListener('input', (e) => {
@@ -544,7 +544,7 @@ class PaperAlfaApp {
       const inputPitch = document.createElement('input');
       inputPitch.type = 'number';
       inputPitch.value = station.pitch || 0;
-      inputPitch.style.width = '45px';
+      inputPitch.style.width = '38px';
       inputPitch.placeholder = 'Ang';
       inputPitch.title = 'Ángulo de inclinación (Pitch) en grados';
       inputPitch.addEventListener('input', (e) => {
@@ -553,8 +553,8 @@ class PaperAlfaApp {
       });
 
       const selectShape = document.createElement('select');
-      selectShape.style.width = '88px';
-      selectShape.style.fontSize = '11px';
+      selectShape.style.width = '78px';
+      selectShape.style.fontSize = '10px';
       selectShape.style.padding = '4px';
       selectShape.style.background = 'var(--bg-panel)';
       selectShape.style.color = 'var(--text-primary)';
@@ -592,7 +592,7 @@ class PaperAlfaApp {
         const inpW = document.createElement('input');
         inpW.type = 'number';
         inpW.value = station.w || station.d || 60;
-        inpW.style.width = '54px';
+        inpW.style.width = '46px';
         inpW.title = 'Ancho W (mm)';
         inpW.addEventListener('input', (e) => {
           station.w = Math.max(1, parseFloat(e.target.value) || 0);
@@ -601,7 +601,7 @@ class PaperAlfaApp {
         const inpH = document.createElement('input');
         inpH.type = 'number';
         inpH.value = station.h || 40;
-        inpH.style.width = '54px';
+        inpH.style.width = '46px';
         inpH.title = 'Alto H (mm)';
         inpH.addEventListener('input', (e) => {
           station.h = Math.max(1, parseFloat(e.target.value) || 0);
@@ -621,7 +621,7 @@ class PaperAlfaApp {
         const inputD = document.createElement('input');
         inputD.type = 'number';
         inputD.value = station.d || 50;
-        inputD.style.width = '68px';
+        inputD.style.width = '48px';
         inputD.title = 'Diámetro D (mm)';
         inputD.addEventListener('input', (e) => {
           station.d = Math.max(0, parseFloat(e.target.value) || 0);
