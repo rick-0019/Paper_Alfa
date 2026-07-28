@@ -309,6 +309,8 @@ class PaperAlfaApp {
         btnToggle.title = 'Volver al Menú Clásico con solapas superiores y todas las secciones visibles';
       }
       if (selectCat) selectCat.value = this.activePhase || 'phase1';
+      // Restaurar visibilidad correcta del menú simplificado
+      this.switchPhase(this.activePhase || 'phase1');
     } else {
       if (topNav) topNav.style.display = 'flex';
       if (catSelector) catSelector.style.display = 'none';
@@ -316,6 +318,10 @@ class PaperAlfaApp {
         btnToggle.textContent = '✨ Menú Simplificado';
         btnToggle.title = 'Activar el Menú Simplificado sin solapas y solo controles usados';
       }
+      // En modo clásico, todas las secciones son visibles al mismo tiempo
+      document.querySelectorAll('.sidebar-content').forEach(p => {
+        p.classList.remove('hidden');
+      });
       document.querySelectorAll('.sidebar-content .card-panel').forEach(p => {
         p.style.display = '';
       });

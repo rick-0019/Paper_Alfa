@@ -390,6 +390,10 @@ input[type="number"] {
 }
 
 /* --- CANVAS CONTAINERS --- */
+.hidden {
+  display: none !important;
+}
+
 .viewer-container {
   flex: 1;
   position: relative;
