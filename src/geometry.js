@@ -342,13 +342,13 @@ export class PaperAlfaGeometry {
       // 1. Mitad derecha del borde inferior
       for(let i=0; i<m/2; i++) pts.push({ y: cy + (w/2)*(i/(m/2)), z: cz - h/2 });
       // 2. Borde derecho
-      for(let i=0; i<m; i++) pts.push({ y: cy + w/2, z: cz - h/2 + h*(i/m) });
+      for(let i=0; i<m; i++) pts.push({ y: cy + w/2, z: cz - h/2 + h*(i/m), isCorner: i === 0 });
       // 3. Borde superior
-      for(let i=0; i<m; i++) pts.push({ y: cy + w/2 - w*(i/m), z: cz + h/2 });
+      for(let i=0; i<m; i++) pts.push({ y: cy + w/2 - w*(i/m), z: cz + h/2, isCorner: i === 0 });
       // 4. Borde izquierdo
-      for(let i=0; i<m; i++) pts.push({ y: cy - w/2, z: cz + h/2 - h*(i/m) });
+      for(let i=0; i<m; i++) pts.push({ y: cy - w/2, z: cz + h/2 - h*(i/m), isCorner: i === 0 });
       // 5. Mitad izquierda del borde inferior
-      for(let i=0; i<m/2; i++) pts.push({ y: cy - w/2 + (w/2)*(i/(m/2)), z: cz - h/2 });
+      for(let i=0; i<m/2; i++) pts.push({ y: cy - w/2 + (w/2)*(i/(m/2)), z: cz - h/2, isCorner: i === 0 });
       
       while(pts.length < N) pts.push({ ...pts[pts.length - 1] });
       pts.length = N; // Asegurar exactamente N puntos
@@ -388,7 +388,8 @@ export class PaperAlfaGeometry {
         for (let j = 0; j < m; j++) {
            pts.push({
              y: p1.y + (p2.y - p1.y) * (j / m),
-             z: p1.z + (p2.z - p1.z) * (j / m)
+             z: p1.z + (p2.z - p1.z) * (j / m),
+             isCorner: j === 0
            });
         }
       }
@@ -993,6 +994,17 @@ export class PaperAlfaGeometry {
     const botSaw = this.buildSawtoothPolyline(V1_c, tabH, N, false);
     lines.cuts.push(...botSaw.cuts);
     lines.mountainFolds.push(...botSaw.mountainFolds);
+
+    // Aristas de doblez verticales en las esquinas de los polígonos
+    for (let i = 1; i < N; i++) {
+      if (pts3D_1[i].isCorner || pts3D_2[i].isCorner) {
+        lines.mountainFolds.push({
+          x1: V1_c[i].x, y1: V1_c[i].y,
+          x2: V2_c[i].x, y2: V2_c[i].y,
+          type: 'mountain'
+        });
+      }
+    }
 
     const mantlePart = {
       id: 'mantle',
