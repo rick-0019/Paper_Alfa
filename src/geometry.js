@@ -427,16 +427,18 @@ export class PaperAlfaGeometry {
 
   getStationPerimeter3D(station, xPos, N = 32) {
     const pts2D = this.getStationPerimeter2D(station, N);
-    const pitchRad = (station.pitch || 0) * (Math.PI / 180);
-    const cosP = Math.cos(pitchRad);
-    const sinP = Math.sin(pitchRad);
+    // Limitamos a 89.9 grados para evitar infinito en la tangente
+    const pitchRad = Math.max(-89.9, Math.min(89.9, station.pitch || 0)) * (Math.PI / 180);
+    const tanP = Math.tan(pitchRad);
     const cz = station.z || 0;
     
     return pts2D.map(p => {
       const localZ = p.z - cz; 
-      const newX = xPos + localZ * sinP;
-      const newZ = cz + localZ * cosP;
-      return { x: newX, y: p.y, z: newZ };
+      // Transformación de Sesgo (Shear):
+      // Mantiene la coordenada Z intacta para que las caras superior e inferior sigan horizontales,
+      // pero desplaza X en base a la altura, simulando un corte oblicuo (ej. tobera F-15).
+      const newX = xPos + localZ * tanP;
+      return { x: newX, y: p.y, z: p.z };
     });
   }
 
