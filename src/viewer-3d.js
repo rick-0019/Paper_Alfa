@@ -154,18 +154,19 @@ export class PaperAlfaViewer3D {
 
       // 1. Dibujar cada estación 2D y sus marcadores técnicos de Centroide X y Eje +
       stations.forEach((s, idx) => {
-        const pts2D = this.geom.getStationPerimeter2D(s, N);
-        const pts3D = pts2D.map(p => new window.THREE.Vector3(s.x - centerX, (p.z + (s.z || 0)) - centerZ, p.y));
+        const pts3D_geom = this.geom.getStationPerimeter3D(s, s.x, N);
+        const pts3D = pts3D_geom.map(p => new window.THREE.Vector3(p.x - centerX, p.z - centerZ, p.y));
 
         // Borde de la estación en naranja técnico
         const geomLoop = new window.THREE.BufferGeometry().setFromPoints([...pts3D, pts3D[0]]);
         const matLoop = new window.THREE.LineBasicMaterial({ color: 0xFF8000, linewidth: 2 });
         this.mesh.add(new window.THREE.Line(geomLoop, matLoop));
 
-        // Cruz técnica Roja X en Centroide
+        // Cruz técnica Roja X en Centroide (calculada sin pitch para el marcador)
+        const pts2D = this.geom.getStationPerimeter2D(s, N);
         const centroid = this.geom.calculateShapeCentroid(pts2D);
         const cy = s.x - centerX;
-        const cz = (centroid.z + (s.z || 0)) - centerZ;
+        const cz = centroid.z - centerZ;
         const cx = centroid.y;
         const sz = 4;
         const ptsX = [
@@ -194,13 +195,13 @@ export class PaperAlfaViewer3D {
         const s2 = stations[i+1];
         if (Math.abs(s2.x - s1.x) <= 0.01) continue;
 
-        const pts1 = this.geom.getStationPerimeter2D(s1, N);
-        const pts2 = this.geom.getStationPerimeter2D(s2, N);
+        const pts1_geom = this.geom.getStationPerimeter3D(s1, s1.x, N);
+        const pts2_geom = this.geom.getStationPerimeter3D(s2, s2.x, N);
 
         const positions = [];
         const indices = [];
-        const v1 = pts1.map(p => new window.THREE.Vector3(s1.x - centerX, (p.z + (s1.z || 0)) - centerZ, p.y));
-        const v2 = pts2.map(p => new window.THREE.Vector3(s2.x - centerX, (p.z + (s2.z || 0)) - centerZ, p.y));
+        const v1 = pts1_geom.map(p => new window.THREE.Vector3(p.x - centerX, p.z - centerZ, p.y));
+        const v2 = pts2_geom.map(p => new window.THREE.Vector3(p.x - centerX, p.z - centerZ, p.y));
 
         for (let j = 0; j < N; j++) {
           positions.push(v1[j].x, v1[j].y, v1[j].z);

@@ -525,11 +525,22 @@ class PaperAlfaApp {
       const inputZ = document.createElement('input');
       inputZ.type = 'number';
       inputZ.value = station.z || 0;
-      inputZ.style.width = '60px';
+      inputZ.style.width = '55px';
       inputZ.placeholder = 'Z';
       inputZ.title = 'Descentrado Z / Elevación en mm';
       inputZ.addEventListener('input', (e) => {
         station.z = parseFloat(e.target.value) || 0;
+        this.recalculateAndRender();
+      });
+
+      const inputPitch = document.createElement('input');
+      inputPitch.type = 'number';
+      inputPitch.value = station.pitch || 0;
+      inputPitch.style.width = '45px';
+      inputPitch.placeholder = 'Ang';
+      inputPitch.title = 'Ángulo de inclinación (Pitch) en grados';
+      inputPitch.addEventListener('input', (e) => {
+        station.pitch = parseFloat(e.target.value) || 0;
         this.recalculateAndRender();
       });
 
@@ -686,6 +697,7 @@ class PaperAlfaApp {
       row.appendChild(numLabel);
       row.appendChild(inputX);
       row.appendChild(inputZ);
+      row.appendChild(inputPitch);
       row.appendChild(selectShape);
       row.appendChild(dimBox);
       row.appendChild(btnEdit2D);

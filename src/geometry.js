@@ -427,7 +427,17 @@ export class PaperAlfaGeometry {
 
   getStationPerimeter3D(station, xPos, N = 32) {
     const pts2D = this.getStationPerimeter2D(station, N);
-    return pts2D.map(p => ({ x: xPos, y: p.y, z: p.z }));
+    const pitchRad = (station.pitch || 0) * (Math.PI / 180);
+    const cosP = Math.cos(pitchRad);
+    const sinP = Math.sin(pitchRad);
+    const cz = station.z || 0;
+    
+    return pts2D.map(p => {
+      const localZ = p.z - cz; 
+      const newX = xPos + localZ * sinP;
+      const newZ = cz + localZ * cosP;
+      return { x: newX, y: p.y, z: newZ };
+    });
   }
 
   buildStationCapPiece(station, index, tabHeight) {
