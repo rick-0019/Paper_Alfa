@@ -1705,6 +1705,7 @@ class PaperAlfaApp {
         // 4. Restaurar loft stations si corresponde
         if (project.loftStations && project.activePhase === 'phase2') {
           this.loftStations = project.loftStations;
+          this.renderLoftStationsUI();
         }
 
         // 5. Recalcular geometría con los parámetros restaurados
@@ -1745,6 +1746,9 @@ class PaperAlfaApp {
             if (this.currentModelData.pages[idx]) {
               this.currentModelData.pages[idx].parts.push(part);
             } else {
+              if (!this.currentModelData.pages[0]) {
+                this.currentModelData.pages.push({ pageNum: 1, parts: [], overflow: false });
+              }
               this.currentModelData.pages[0].parts.push(part);
             }
           });
@@ -1766,7 +1770,7 @@ class PaperAlfaApp {
         console.log(`PAPER ALFA: Proyecto "${file.name}" cargado exitosamente.`);
       } catch (err) {
         console.error('Error al cargar proyecto .palfa:', err);
-        alert('Error al leer el archivo .palfa. Verificá que sea un archivo válido.');
+        alert('Error al leer el archivo .palfa: ' + (err.message || 'Error desconocido') + '\n\nMirá la consola para más detalles.');
       }
     };
     reader.readAsText(file);
