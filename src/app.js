@@ -76,6 +76,7 @@ class PaperAlfaApp {
     bindPepBtn('btn-pep-center-page', () => this.viewer2D.centerSelectedPartOnPage());
     bindPepBtn('btn-pep-auto-pack', () => this.viewer2D.autoPackCurrentPage(this.currentModelData, this.currentPageIndex));
     bindPepBtn('btn-pep-fit-sheet', () => this.viewer2D.resetView());
+    bindPepBtn('btn-pep-toggle-labels', () => this.viewer2D.toggleLabels());
     bindPepBtn('btn-pep-duplicate', () => this.viewer2D.duplicateSelectedPart(this.currentModelData));
     bindPepBtn('btn-pep-delete', () => this.viewer2D.deleteSelectedPart(this.currentModelData));
 

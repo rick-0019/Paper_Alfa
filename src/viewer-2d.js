@@ -13,6 +13,7 @@ export class PaperAlfaViewer2D {
     this.panX = 0;
     this.panY = 0;
     this.currentPage = 0;
+    this.hideLabels = false;
     this.setupZoomPan();
   }
 
@@ -384,6 +385,13 @@ export class PaperAlfaViewer2D {
    * @param {Object} modelData - Datos calculados por PaperAlfaGeometry
    * @param {number|string} pageIndex - Hoja A4 a mostrar ('all' para ver todas juntas)
    */
+  toggleLabels() {
+    this.hideLabels = !this.hideLabels;
+    if (this.lastModelData) {
+      this.render(this.lastModelData, this.lastPageIndex);
+    }
+  }
+
   render(modelData, pageIndex = 0) {
     this.lastModelData = modelData;
     this.lastPageIndex = pageIndex;
@@ -507,7 +515,10 @@ export class PaperAlfaViewer2D {
         label.setAttribute('font-size', '4.5');
         label.setAttribute('font-weight', 'bold');
         label.textContent = `${part.name.toUpperCase()} (${Math.round(part.width)}x${Math.round(part.height)}mm)${rot ? ` [${rot}°]` : ''}`;
-        partG.appendChild(label);
+        
+        if (!this.hideLabels) {
+          partG.appendChild(label);
+        }
 
         // Renderizar trazos
         const lines = part.lines || {};
