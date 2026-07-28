@@ -439,7 +439,7 @@ export class PaperAlfaGeometry {
       // Mantiene la coordenada Z intacta para que las caras superior e inferior sigan horizontales,
       // pero desplaza X en base a la altura, simulando un corte oblicuo (ej. tobera F-15).
       const newX = xPos + localZ * tanP;
-      return { x: newX, y: p.y, z: p.z };
+      return { x: newX, y: p.y, z: p.z, isCorner: p.isCorner };
     });
   }
 
