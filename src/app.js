@@ -387,6 +387,14 @@ class PaperAlfaApp {
         { id: 4, x: 240, z: -67.5, d: 130, shape: 'circle' },
         { id: 5, x: 320, z: -90, d: 85, shape: 'circle' },
         { id: 6, x: 400, z: -112.5, d: 40, shape: 'circle' }
+      ],
+      'preset-loft-tail2': [
+        { id: 1, x: 0, z: 0, d: 266, shape: 'circle' },
+        { id: 2, x: 80, z: 21.5, d: 223, shape: 'circle' },
+        { id: 3, x: 160, z: 43, d: 180, shape: 'circle' },
+        { id: 4, x: 240, z: 69.7, d: 126.7, shape: 'circle' },
+        { id: 5, x: 320, z: 96.3, d: 73.3, shape: 'circle' },
+        { id: 6, x: 400, z: 123, d: 20, shape: 'circle' }
       ]
     };
 
