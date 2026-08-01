@@ -88,7 +88,7 @@ export class PaperAlfaGeometry {
 
     return {
       type: 'truncated_cone',
-      parameters: { d1, d2, height: h, tabHeight: tabH, g: g.toFixed(2), rho1: rho1.toFixed(2), rho2: rho2.toFixed(2), thetaDeg: thetaDeg.toFixed(1) },
+      parameters: { d1, d2, height: h, tabHeight: tabH, g: g.toFixed(2), rho1: rho1.toFixed(2), rho2: rho2.toFixed(2), thetaDeg: thetaDeg.toFixed(1), useMosaic: params.useMosaic },
       metrics: {
         slantHeightMm: g.toFixed(2),
         sectorAngleDeg: thetaDeg.toFixed(1),
@@ -570,7 +570,7 @@ export class PaperAlfaGeometry {
     const layout = this.layoutPartsOnA4(parts, margin, params.useMosaic);
     return {
       type: 'cylinder',
-      parameters: { d1: d, d2: d, height: h, tabHeight: tabH },
+      parameters: { d1: d, d2: d, height: h, tabHeight: tabH, useMosaic: params.useMosaic },
       metrics: {
         slantHeightMm: h.toFixed(2),
         sectorAngleDeg: '360.0',
@@ -813,7 +813,7 @@ export class PaperAlfaGeometry {
     const layout = this.layoutPartsOnA4(parts, margin, params.useMosaic);
     return {
       type: 'cone',
-      parameters: { d1, d2: 0, height: h, tabHeight: tabH, g: g.toFixed(2), rho1: rho1.toFixed(2), rho2: '0.00', thetaDeg: thetaDeg.toFixed(1) },
+      parameters: { d1, d2: 0, height: h, tabHeight: tabH, g: g.toFixed(2), rho1: rho1.toFixed(2), rho2: '0.00', thetaDeg: thetaDeg.toFixed(1), useMosaic: params.useMosaic },
       metrics: {
         slantHeightMm: g.toFixed(2),
         sectorAngleDeg: thetaDeg.toFixed(1),
@@ -1040,7 +1040,7 @@ export class PaperAlfaGeometry {
     const layout = this.layoutPartsOnA4(parts, margin, params.useMosaic);
     return {
       type: 'eccentric',
-      parameters: { d1, d2, height: L, z1, z2, tabHeight: tabH },
+      parameters: { d1, d2, height: L, z1, z2, tabHeight: tabH, useMosaic: params.useMosaic },
       metrics: {
         totalWidthMm: (w + tabH * 2).toFixed(1),
         totalHeightMm: (h + tabH * 2).toFixed(1),
@@ -1142,7 +1142,7 @@ export class PaperAlfaGeometry {
     const layout = this.layoutPartsOnA4(parts, margin, params.useMosaic);
     return {
       type: 'prism',
-      parameters: { d1, d2: d1, height: h, sides, tabHeight: tabH },
+      parameters: { d1, d2: d1, height: h, sides, tabHeight: tabH, useMosaic: params.useMosaic },
       metrics: {
         slantHeightMm: h.toFixed(2),
         sectorAngleDeg: `${sides} Caras`,
@@ -1254,7 +1254,7 @@ export class PaperAlfaGeometry {
     const layout = this.layoutPartsOnA4(parts, margin, params.useMosaic);
     return {
       type: 'pyramid',
-      parameters: { d1, d2: 0, height: h, sides, tabHeight: tabH },
+      parameters: { d1, d2: 0, height: h, sides, tabHeight: tabH, useMosaic: params.useMosaic },
       metrics: {
         slantHeightMm: g.toFixed(2),
         sectorAngleDeg: thetaDeg.toFixed(1),
@@ -1342,7 +1342,7 @@ export class PaperAlfaGeometry {
     const layout = this.layoutPartsOnA4(parts, margin, params.useMosaic);
     return {
       type: 'hemisphere',
-      parameters: { d1, d2: 0, height: R, rings, tabHeight: tabH },
+      parameters: { d1, d2: 0, height: R, rings, tabHeight: tabH, useMosaic: params.useMosaic },
       metrics: {
         slantHeightMm: `${rings} Anillos`,
         sectorAngleDeg: 'Latitudinal',
@@ -1391,7 +1391,7 @@ export class PaperAlfaGeometry {
     const layout = this.layoutPartsOnA4(sphereParts, margin, params.useMosaic);
     return {
       type: 'sphere',
-      parameters: { d1, d2: 0, height: d1, rings: rings * 2, tabHeight: tabH },
+      parameters: { d1, d2: 0, height: d1, rings: rings * 2, tabHeight: tabH, useMosaic: params.useMosaic },
       metrics: {
         slantHeightMm: `${rings * 2} Anillos`,
         sectorAngleDeg: 'Esfera 360°',
@@ -1486,7 +1486,7 @@ export class PaperAlfaGeometry {
     const layout = this.layoutPartsOnA4(parts, margin, params.useMosaic);
     return {
       type: 'loft',
-      parameters: { stations, tabHeight: tabH },
+      parameters: { stations, tabHeight: tabH, useMosaic: params.useMosaic },
       metrics: {
         slantHeightMm: `${stations.length} Cuadernas`,
         sectorAngleDeg: `${parts.length} Piezas`,

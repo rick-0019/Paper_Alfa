@@ -418,13 +418,13 @@ export class PaperAlfaViewer2D {
           maxY = Math.max(maxY, p.layout.y + p.boundingBox.height / 2);
         }
       });
-      // Expandir lienzo a múltiplos de A4
-      minX = Math.floor(minX / this.A4_WIDTH) * this.A4_WIDTH - this.A4_WIDTH;
-      minY = Math.floor(minY / this.A4_HEIGHT) * this.A4_HEIGHT - this.A4_HEIGHT;
-      maxX = Math.ceil(maxX / this.A4_WIDTH) * this.A4_WIDTH + this.A4_WIDTH;
-      maxY = Math.ceil(maxY / this.A4_HEIGHT) * this.A4_HEIGHT + this.A4_HEIGHT;
+      // Expandir lienzo a múltiplos de A4 y garantizar un mínimo de 3x3 hojas (Matriz de 9 hojas)
+      minX = Math.min(0, Math.floor(minX / this.A4_WIDTH) * this.A4_WIDTH);
+      minY = Math.min(0, Math.floor(minY / this.A4_HEIGHT) * this.A4_HEIGHT);
+      maxX = Math.max(this.A4_WIDTH * 3, Math.ceil(maxX / this.A4_WIDTH) * this.A4_WIDTH);
+      maxY = Math.max(this.A4_HEIGHT * 3, Math.ceil(maxY / this.A4_HEIGHT) * this.A4_HEIGHT);
       
-      this.svg.setAttribute('viewBox', `${minX} ${minY} ${maxX - minX} ${maxY - minY}`);
+      this.svg.setAttribute('viewBox', `${minX - 10} ${minY - 10} ${maxX - minX + 20} ${maxY - minY + 20}`);
       this.renderMosaicCanvas(container, modelData, page, minX, minY, maxX, maxY, margin);
     } else if (pageIndex === 'all' || pageIndex === -1) {
       // Renderizar todas las páginas apiladas verticalmente con un espacio
@@ -466,8 +466,8 @@ export class PaperAlfaViewer2D {
     pageGroup.appendChild(bgRect);
 
     // Grilla A4 (Rectángulos verdes / blancos)
-    for (let x = 0; x < maxX; x += this.A4_WIDTH) {
-      for (let y = 0; y < maxY; y += this.A4_HEIGHT) {
+    for (let x = minX; x < maxX; x += this.A4_WIDTH) {
+      for (let y = minY; y < maxY; y += this.A4_HEIGHT) {
         const sheet = this.createSVGRect(x, y, this.A4_WIDTH, this.A4_HEIGHT, 'none', 1.0);
         sheet.setAttribute('stroke', '#10B981'); // Verde brillante para la grilla
         sheet.setAttribute('stroke-width', '1.5');
