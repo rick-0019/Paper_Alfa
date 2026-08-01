@@ -324,14 +324,19 @@ input[type="number"] {
 
 /* Viewport Header Bar */
 .viewport-toolbar {
-  height: 48px;
+  min-height: 48px;
+  height: auto;
   background: rgba(15, 22, 34, 0.6);
   backdrop-filter: blur(8px);
   border-bottom: 1px solid var(--border-subtle);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 24px;
+  padding: 12px 24px;
+  flex-wrap: wrap;
+  gap: 12px;
+  position: relative;
+  z-index: 30;
 }
 
 .view-tabs {
