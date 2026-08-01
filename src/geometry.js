@@ -659,50 +659,19 @@ export class PaperAlfaGeometry {
       const partW = box.width;
       const partH = box.height;
 
-      if (useMosaic && (partW > pageWidth || partH > pageHeight)) {
-        const cols = Math.ceil((partW - overlap) / effectiveWidth);
-        const rows = Math.ceil((partH - overlap) / effectiveHeight);
-
-        // Marcas de registro
-        part.lines.markings = part.lines.markings || [];
-        for (let c = 1; c < cols; c++) {
-          const rx = -partW / 2 + c * effectiveWidth + overlap / 2;
-          part.lines.markings.push({ type: 'registration', x1: rx, y1: -partH / 2, x2: rx, y2: partH / 2, color: '#3B82F6' });
-          for (let y = -partH/2 + 30; y < partH/2; y += 60) {
-            part.lines.markings.push({ type: 'registration-cross', x1: rx - 6, y1: y, x2: rx + 6, y2: y, color: '#3B82F6' });
-            part.lines.markings.push({ type: 'registration-cross', x1: rx, y1: y - 6, x2: rx, y2: y + 6, color: '#3B82F6' });
-          }
-        }
-        for (let r = 1; r < rows; r++) {
-          const ry = -partH / 2 + r * effectiveHeight + overlap / 2;
-          part.lines.markings.push({ type: 'registration', x1: -partW / 2, y1: ry, x2: partW / 2, y2: ry, color: '#3B82F6' });
-          for (let x = -partW/2 + 30; x < partW/2; x += 60) {
-            part.lines.markings.push({ type: 'registration-cross', x1: x - 6, y1: ry, x2: x + 6, y2: ry, color: '#3B82F6' });
-            part.lines.markings.push({ type: 'registration-cross', x1: x, y1: ry - 6, x2: x, y2: ry + 6, color: '#3B82F6' });
-          }
-        }
-
-        for (let c = 0; c < cols; c++) {
-          for (let r = 0; r < rows; r++) {
-            if (pages[currentPage].parts.length > 0) pushNewPage();
-            
-            const tilePart = { ...part, id: `${part.id}_M${c}_${r}` };
-            tilePart.name = `${part.name} (Mosaico ${c+1}x${r+1})`;
-            
-            const layoutX = marginSec + overlap / 2 - c * effectiveWidth + partW / 2;
-            const layoutY = marginSec + overlap / 2 - r * effectiveHeight + partH / 2;
-
-            tilePart.layout = {
-              pageIndex: currentPage,
-              x: layoutX,
-              y: layoutY,
-              rotation: 0
-            };
-            
-            pages[currentPage].parts.push(tilePart);
-            pushNewPage();
-          }
-        }
+      if (useMosaic) {
+        // En modo "Mosaico Manual", simplemente acomodamos la pieza en la página 0 (Lienzo Global)
+        // La apilamos horizontalmente sin importar si desborda
+        part.layout = {
+          pageIndex: 0,
+          x: Math.round(curX + partW / 2),
+          y: Math.round(curY + partH / 2),
+          rotation: 0
+        };
+        pages[0].parts.push(part);
+        pages[0].overflow = true;
+        curX += partW + 15;
+        if (partH > rowMaxH) rowMaxH = partH;
         continue;
       }
 

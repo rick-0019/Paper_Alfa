@@ -406,7 +406,27 @@ export class PaperAlfaViewer2D {
     container.setAttribute('id', 'layout-container');
     this.svg.appendChild(container);
 
-    if (pageIndex === 'all' || pageIndex === -1) {
+    if (modelData.parameters?.useMosaic) {
+      // MODO MOSAICO MANUAL: Lienzo infinito
+      const page = pages[0] || { parts: [] };
+      let minX = 0, minY = 0, maxX = this.A4_WIDTH, maxY = this.A4_HEIGHT;
+      page.parts.forEach(p => {
+        if (p.layout) {
+          minX = Math.min(minX, p.layout.x - p.boundingBox.width / 2);
+          minY = Math.min(minY, p.layout.y - p.boundingBox.height / 2);
+          maxX = Math.max(maxX, p.layout.x + p.boundingBox.width / 2);
+          maxY = Math.max(maxY, p.layout.y + p.boundingBox.height / 2);
+        }
+      });
+      // Expandir lienzo a múltiplos de A4
+      minX = Math.floor(minX / this.A4_WIDTH) * this.A4_WIDTH - this.A4_WIDTH;
+      minY = Math.floor(minY / this.A4_HEIGHT) * this.A4_HEIGHT - this.A4_HEIGHT;
+      maxX = Math.ceil(maxX / this.A4_WIDTH) * this.A4_WIDTH + this.A4_WIDTH;
+      maxY = Math.ceil(maxY / this.A4_HEIGHT) * this.A4_HEIGHT + this.A4_HEIGHT;
+      
+      this.svg.setAttribute('viewBox', `${minX} ${minY} ${maxX - minX} ${maxY - minY}`);
+      this.renderMosaicCanvas(container, modelData, page, minX, minY, maxX, maxY, margin);
+    } else if (pageIndex === 'all' || pageIndex === -1) {
       // Renderizar todas las páginas apiladas verticalmente con un espacio
       const spacing = 25;
       const totalHeight = pages.length * (this.A4_HEIGHT + spacing);
@@ -435,6 +455,95 @@ export class PaperAlfaViewer2D {
     }
 
     this.updateTransform();
+  }
+
+  renderMosaicCanvas(container, modelData, page, minX, minY, maxX, maxY, margin) {
+    const pageGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    container.appendChild(pageGroup);
+
+    // Fondo gris oscuro del entorno (más grande que la grilla)
+    const bgRect = this.createSVGRect(minX, minY, maxX - minX, maxY - minY, '#0f172a', 1.0);
+    pageGroup.appendChild(bgRect);
+
+    // Grilla A4 (Rectángulos verdes / blancos)
+    for (let x = 0; x < maxX; x += this.A4_WIDTH) {
+      for (let y = 0; y < maxY; y += this.A4_HEIGHT) {
+        const sheet = this.createSVGRect(x, y, this.A4_WIDTH, this.A4_HEIGHT, 'none', 1.0);
+        sheet.setAttribute('stroke', '#10B981'); // Verde brillante para la grilla
+        sheet.setAttribute('stroke-width', '1.5');
+        sheet.setAttribute('stroke-dasharray', '10, 5');
+        pageGroup.appendChild(sheet);
+
+        // Texto de coordenada
+        const coord = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        coord.setAttribute('x', x + 10);
+        coord.setAttribute('y', y + 15);
+        coord.setAttribute('fill', '#10B981');
+        coord.setAttribute('font-family', 'JetBrains Mono, monospace');
+        coord.setAttribute('font-size', '10');
+        coord.setAttribute('font-weight', 'bold');
+        coord.textContent = `A4 (${x / this.A4_WIDTH}, ${y / this.A4_HEIGHT})`;
+        pageGroup.appendChild(coord);
+      }
+    }
+
+    // Área de las piezas
+    const partsGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    partsGroup.setAttribute('id', 'parts-group');
+
+    page.parts.forEach(part => {
+      const partG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      partG.setAttribute('id', `part-${part.id}`);
+      
+      const rot = part.layout && part.layout.rotation ? part.layout.rotation : 0;
+      const tx = part.layout && part.layout.x !== undefined ? part.layout.x : this.A4_WIDTH / 2;
+      const ty = part.layout && part.layout.y !== undefined ? part.layout.y : this.A4_HEIGHT / 2;
+      partG.setAttribute('transform', `translate(${tx}, ${ty}) rotate(${rot})`);
+
+      const isSelected = (this.selectedPart && this.selectedPart.id === part.id);
+      
+      const wBox = part.boundingBox.width;
+      const hBox = part.boundingBox.height;
+      const hitRect = this.createSVGRect(-wBox / 2, -hBox / 2, wBox, hBox, isSelected ? 'rgba(0, 240, 255, 0.1)' : 'rgba(255,255,255,0.001)', isSelected ? 0.8 : 0.2);
+      hitRect.setAttribute('stroke', isSelected ? '#00F0FF' : 'transparent');
+      if (isSelected) {
+        hitRect.setAttribute('stroke-dasharray', '4, 2');
+        this.selectedPartG = partG;
+      }
+      partG.appendChild(hitRect);
+
+      const lines = part.lines || {};
+      (lines.mountainFolds || []).forEach(l => partG.appendChild(this.createSVGPathOrLine(l, '#000000', '0.35', 'none')));
+      (lines.valleyFolds || []).forEach(l => partG.appendChild(this.createSVGPathOrLine(l, '#000000', '0.35', 'none')));
+      (lines.markings || []).forEach(l => partG.appendChild(this.createSVGPathOrLine(l, l.color || '#FF3B30', (l.width || 0.45).toString(), l.type === 'centroid-x' ? '1, 0.5' : (l.type === 'registration' ? '6, 4' : 'none'))));
+      (lines.cuts || []).forEach(l => partG.appendChild(this.createSVGPathOrLine(l, '#090D14', '0.55', 'none')));
+
+      if (!this.hideLabels) {
+        const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        label.setAttribute('x', 0);
+        label.setAttribute('y', -part.boundingBox.height / 2 - 4);
+        label.setAttribute('text-anchor', 'middle');
+        label.setAttribute('fill', isSelected ? '#00F0FF' : '#334155');
+        label.setAttribute('font-family', 'JetBrains Mono, monospace');
+        label.setAttribute('font-size', '4.5');
+        label.setAttribute('font-weight', 'bold');
+        label.textContent = `${part.name.toUpperCase()} (${Math.round(wBox)}x${Math.round(hBox)}mm)`;
+        partG.appendChild(label);
+      }
+
+      partG.style.cursor = 'grab';
+      partG.addEventListener('mousedown', (e) => {
+        e.stopPropagation();
+        if (e.button === 0) {
+          this.selectPart(part, partG);
+          this.startDraggingPart(e, part, partG);
+        }
+      });
+
+      partsGroup.appendChild(partG);
+    });
+
+    pageGroup.appendChild(partsGroup);
   }
 
   renderSinglePage(container, modelData, page, pageNum, totalPages, margin, offsetX = 0, offsetY = 0) {

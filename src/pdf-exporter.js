@@ -16,19 +16,76 @@ export class PaperAlfaPdfExporter {
   getPagesForExport(modelData) {
     if (!modelData || !modelData.pages) return [];
 
-    // CLON PROFUNDO: ninguna referencia compartida con el modelo vivo
     const clonedPages = JSON.parse(JSON.stringify(modelData.pages));
-
-    // Aplanar todas las piezas clonadas
     const allParts = [];
     clonedPages.forEach(page => {
-      if (page && page.parts) {
-        allParts.push(...page.parts);
-      }
+      if (page && page.parts) allParts.push(...page.parts);
     });
     if (allParts.length === 0) return [];
 
-    // Reasignar piezas a sus hojas por pageIndex (sin tocar el modelo original)
+    if (modelData.parameters?.useMosaic) {
+      // MODO MOSAICO MANUAL (TILING)
+      // Encontrar bounding box global de todas las piezas
+      let minX = 0, minY = 0, maxX = this.A4_WIDTH, maxY = this.A4_HEIGHT;
+      allParts.forEach(p => {
+        if (p.layout) {
+          const bw = p.boundingBox?.width || p.width || 60;
+          const bh = p.boundingBox?.height || p.height || 60;
+          minX = Math.min(minX, p.layout.x - bw / 2);
+          minY = Math.min(minY, p.layout.y - bh / 2);
+          maxX = Math.max(maxX, p.layout.x + bw / 2);
+          maxY = Math.max(maxY, p.layout.y + bh / 2);
+        }
+      });
+
+      // Alinear minX, minY a múltiplos de A4
+      const startCol = Math.floor(minX / this.A4_WIDTH);
+      const startRow = Math.floor(minY / this.A4_HEIGHT);
+      const endCol = Math.ceil(maxX / this.A4_WIDTH);
+      const endRow = Math.ceil(maxY / this.A4_HEIGHT);
+
+      const tiledPages = [];
+      let pageNum = 1;
+
+      for (let r = startRow; r < endRow; r++) {
+        for (let c = startCol; c < endCol; c++) {
+          const cellMinX = c * this.A4_WIDTH;
+          const cellMinY = r * this.A4_HEIGHT;
+          const cellMaxX = cellMinX + this.A4_WIDTH;
+          const cellMaxY = cellMinY + this.A4_HEIGHT;
+
+          // Buscar piezas que intersecten con esta celda
+          const intersectingParts = [];
+          allParts.forEach(p => {
+            const bw = p.boundingBox?.width || p.width || 60;
+            const bh = p.boundingBox?.height || p.height || 60;
+            const pMinX = p.layout.x - bw / 2;
+            const pMinY = p.layout.y - bh / 2;
+            const pMaxX = p.layout.x + bw / 2;
+            const pMaxY = p.layout.y + bh / 2;
+
+            if (pMaxX >= cellMinX && pMinX <= cellMaxX && pMaxY >= cellMinY && pMinY <= cellMaxY) {
+              // Intersecta! Clonamos la pieza y le aplicamos el offset de la celda
+              const tilePart = JSON.parse(JSON.stringify(p));
+              tilePart.layout.x -= cellMinX;
+              tilePart.layout.y -= cellMinY;
+              intersectingParts.push(tilePart);
+            }
+          });
+
+          if (intersectingParts.length > 0) {
+            tiledPages.push({
+              pageNum: pageNum++,
+              parts: intersectingParts,
+              overflow: false
+            });
+          }
+        }
+      }
+      return tiledPages.length > 0 ? tiledPages : [{ pageNum: 1, parts: [], overflow: false }];
+    }
+
+    // Reasignar piezas a sus hojas por pageIndex (modo normal)
     const maxIdx = Math.max(0, ...allParts.map(p => (p.layout && p.layout.pageIndex) || 0));
     const exportPages = [];
     for (let i = 0; i <= maxIdx; i++) {
@@ -107,6 +164,39 @@ export class PaperAlfaPdfExporter {
         // Renderizar trazos vectoriales de la pieza
         this.drawPartLines(doc, part, originX, originY, rot);
       });
+
+      // 3.5 Marcas de registro para ensamblaje (Si es mosaico)
+      if (modelData.parameters?.useMosaic) {
+        doc.setDrawColor(16, 185, 129); // Verde técnico
+        doc.setLineWidth(0.3);
+        doc.setLineDash([2, 1], 0);
+        
+        // Bordes de la hoja
+        doc.rect(margin, margin, this.A4_WIDTH - margin * 2, this.A4_HEIGHT - margin * 2);
+
+        // Cruces de registro en esquinas
+        const s = 10; // Tamaño de la cruz
+        const m = margin;
+        const w = this.A4_WIDTH - margin;
+        const h = this.A4_HEIGHT - margin;
+        
+        doc.setLineDash([], 0);
+        const drawCross = (x, y) => {
+          doc.line(x - s/2, y, x + s/2, y);
+          doc.line(x, y - s/2, x, y + s/2);
+        };
+        
+        drawCross(m, m);
+        drawCross(w, m);
+        drawCross(m, h);
+        drawCross(w, h);
+        
+        // Texto de página
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+        doc.setTextColor(16, 185, 129);
+        doc.text(`MOSAICO MANUAL - HOJA ${page.pageNum}`, this.A4_WIDTH / 2, margin + 10, { align: 'center' });
+      }
 
       // 4. Pie de página de seguridad 1:1
       doc.setFont('helvetica', 'normal');
