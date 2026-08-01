@@ -125,7 +125,11 @@ export class PaperAlfaGeometry {
     // 1. Pestaña de unión lateral recta en arista izquierda (startAngle)
     const sideTab = this.buildStraightSideTab(pStartInner, pStartOuter, tabHeight, 30);
     lines.cuts.push(...sideTab.cutLines);
-    lines.cuts.push({ x1: pStartInner.x, y1: pStartInner.y, x2: pStartOuter.x, y2: pStartOuter.y, type: 'cut' });
+    if (tabHeight > 0) {
+      lines.mountainFolds.push({ x1: pStartInner.x, y1: pStartInner.y, x2: pStartOuter.x, y2: pStartOuter.y, type: 'mountain' });
+    } else {
+      lines.cuts.push({ x1: pStartInner.x, y1: pStartInner.y, x2: pStartOuter.x, y2: pStartOuter.y, type: 'cut' });
+    }
 
     // 2. Arista derecha de cierre (corte recto)
     lines.cuts.push({ x1: pEndInner.x, y1: pEndInner.y, x2: pEndOuter.x, y2: pEndOuter.y, type: 'cut' });
@@ -845,7 +849,11 @@ export class PaperAlfaGeometry {
     // Pestaña lateral recta en arista izquierda
     const sideTab = this.buildStraightSideTab(pStartInner, pStartOuter, tabHeight, 30);
     lines.cuts.push(...sideTab.cutLines);
-    lines.cuts.push({ x1: 0, y1: 0, x2: pStartOuter.x, y2: pStartOuter.y, type: 'cut' });
+    if (tabHeight > 0) {
+      lines.mountainFolds.push({ x1: 0, y1: 0, x2: pStartOuter.x, y2: pStartOuter.y, type: 'mountain' });
+    } else {
+      lines.cuts.push({ x1: 0, y1: 0, x2: pStartOuter.x, y2: pStartOuter.y, type: 'cut' });
+    }
 
     // Corte derecho
     lines.cuts.push({ x1: 0, y1: 0, x2: pEndOuter.x, y2: pEndOuter.y, type: 'cut' });
@@ -1002,6 +1010,8 @@ export class PaperAlfaGeometry {
     lines.cuts.push(...sideTab.cutLines);
     if (tabH > 0) {
       lines.mountainFolds.push({ x1: V1_c[0].x, y1: V1_c[0].y, x2: V2_c[0].x, y2: V2_c[0].y, type: 'mountain' });
+    } else {
+      lines.cuts.push({ x1: V1_c[0].x, y1: V1_c[0].y, x2: V2_c[0].x, y2: V2_c[0].y, type: 'cut' });
     }
 
     // Borde derecho de cierre
@@ -1203,6 +1213,8 @@ export class PaperAlfaGeometry {
     lines.cuts.push(...sideTab.cutLines);
     if (tabH > 0) {
       lines.mountainFolds.push({ x1: 0, y1: 0, x2: pStartOuter.x, y2: pStartOuter.y, type: 'mountain' });
+    } else {
+      lines.cuts.push({ x1: 0, y1: 0, x2: pStartOuter.x, y2: pStartOuter.y, type: 'cut' });
     }
 
     for (let i = 0; i < sides; i++) {
