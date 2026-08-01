@@ -84,7 +84,7 @@ export class PaperAlfaGeometry {
     }
 
     // Empaquetar las piezas en páginas A4 (210 x 297 mm) con margen de seguridad
-    const layout = this.layoutPartsOnA4(parts, margin);
+    const layout = this.layoutPartsOnA4(parts, margin, params.useMosaic);
 
     return {
       type: 'truncated_cone',
@@ -567,7 +567,7 @@ export class PaperAlfaGeometry {
       parts.push(this.buildCapPiece(radius, 'Tapa Inferior (D=' + d.toFixed(1) + 'mm)', 'bottom-cap', tabH));
     }
 
-    const layout = this.layoutPartsOnA4(parts, margin);
+    const layout = this.layoutPartsOnA4(parts, margin, params.useMosaic);
     return {
       type: 'cylinder',
       parameters: { d1: d, d2: d, height: h, tabHeight: tabH },
@@ -630,47 +630,95 @@ export class PaperAlfaGeometry {
   /**
    * Empaqueta piezas en hojas A4 (210 x 297 mm) manteniendo escala real 1:1 en mm
    */
-  layoutPartsOnA4(parts, marginSec) {
+  layoutPartsOnA4(parts, marginSec, useMosaic = false) {
     parts.forEach(part => this.centerPieceGeometry(part));
 
     const pageWidth = this.A4_WIDTH - marginSec * 2;
     const pageHeight = this.A4_HEIGHT - marginSec * 2;
+    const overlap = 20; // Solape en mm
+    const effectiveWidth = pageWidth - overlap;
+    const effectiveHeight = pageHeight - overlap;
 
     const pages = [{ pageNum: 1, parts: [], overflow: false }];
     let currentPage = 0;
 
-    // Posición actual para ir acomodando piezas
     let curX = marginSec + 15;
     let curY = marginSec + 20;
     let rowMaxH = 0;
+
+    const pushNewPage = () => {
+      currentPage++;
+      pages.push({ pageNum: currentPage + 1, parts: [], overflow: false });
+      curX = marginSec + 15;
+      curY = marginSec + 20;
+      rowMaxH = 0;
+    };
 
     for (const part of parts) {
       const box = part.boundingBox;
       const partW = box.width;
       const partH = box.height;
 
-      // Si la pieza sola es más ancha que una página A4, la centramos con advertencia de overflow
+      if (useMosaic && (partW > pageWidth || partH > pageHeight)) {
+        const cols = Math.ceil((partW - overlap) / effectiveWidth);
+        const rows = Math.ceil((partH - overlap) / effectiveHeight);
+
+        // Marcas de registro
+        part.lines.markings = part.lines.markings || [];
+        for (let c = 1; c < cols; c++) {
+          const rx = -partW / 2 + c * effectiveWidth + overlap / 2;
+          part.lines.markings.push({ type: 'registration', x1: rx, y1: -partH / 2, x2: rx, y2: partH / 2, color: '#3B82F6' });
+          for (let y = -partH/2 + 30; y < partH/2; y += 60) {
+            part.lines.markings.push({ type: 'registration-cross', x1: rx - 6, y1: y, x2: rx + 6, y2: y, color: '#3B82F6' });
+            part.lines.markings.push({ type: 'registration-cross', x1: rx, y1: y - 6, x2: rx, y2: y + 6, color: '#3B82F6' });
+          }
+        }
+        for (let r = 1; r < rows; r++) {
+          const ry = -partH / 2 + r * effectiveHeight + overlap / 2;
+          part.lines.markings.push({ type: 'registration', x1: -partW / 2, y1: ry, x2: partW / 2, y2: ry, color: '#3B82F6' });
+          for (let x = -partW/2 + 30; x < partW/2; x += 60) {
+            part.lines.markings.push({ type: 'registration-cross', x1: x - 6, y1: ry, x2: x + 6, y2: ry, color: '#3B82F6' });
+            part.lines.markings.push({ type: 'registration-cross', x1: x, y1: ry - 6, x2: x, y2: ry + 6, color: '#3B82F6' });
+          }
+        }
+
+        for (let c = 0; c < cols; c++) {
+          for (let r = 0; r < rows; r++) {
+            if (pages[currentPage].parts.length > 0) pushNewPage();
+            
+            const tilePart = { ...part, id: `${part.id}_M${c}_${r}` };
+            tilePart.name = `${part.name} (Mosaico ${c+1}x${r+1})`;
+            
+            const layoutX = marginSec + overlap / 2 - c * effectiveWidth + partW / 2;
+            const layoutY = marginSec + overlap / 2 - r * effectiveHeight + partH / 2;
+
+            tilePart.layout = {
+              pageIndex: currentPage,
+              x: layoutX,
+              y: layoutY,
+              rotation: 0
+            };
+            
+            pages[currentPage].parts.push(tilePart);
+            pushNewPage();
+          }
+        }
+        continue;
+      }
+
       if (partW > pageWidth || partH > pageHeight) {
         pages[currentPage].overflow = true;
       }
 
-      // Si no cabe en la fila actual de la hoja, bajamos de fila
       if (curX + partW > this.A4_WIDTH - marginSec && pages[currentPage].parts.length > 0) {
         curX = marginSec + 15;
         curY += rowMaxH + 15;
         rowMaxH = 0;
       }
-
-      // Si se pasa en vertical, creamos una nueva página A4
       if (curY + partH > this.A4_HEIGHT - marginSec && pages[currentPage].parts.length > 0) {
-        currentPage++;
-        pages.push({ pageNum: currentPage + 1, parts: [], overflow: false });
-        curX = marginSec + 15;
-        curY = marginSec + 20;
-        rowMaxH = 0;
+        pushNewPage();
       }
 
-      // Asignar posición central absoluta para la pieza en mm (origen = centro geométrico de la pieza)
       const posX = Math.round(curX + partW / 2);
       const posY = Math.round(curY + partH / 2);
 
@@ -687,6 +735,10 @@ export class PaperAlfaGeometry {
       if (partH > rowMaxH) {
         rowMaxH = partH;
       }
+    }
+
+    if (pages.length > 1 && pages[pages.length - 1].parts.length === 0) {
+      pages.pop();
     }
 
     return {
@@ -789,7 +841,7 @@ export class PaperAlfaGeometry {
       parts.push(this.buildCapPiece(r1, 'Tapa Inferior Base (D=' + (r1 * 2).toFixed(1) + 'mm)', 'bottom-cap', tabH));
     }
 
-    const layout = this.layoutPartsOnA4(parts, margin);
+    const layout = this.layoutPartsOnA4(parts, margin, params.useMosaic);
     return {
       type: 'cone',
       parameters: { d1, d2: 0, height: h, tabHeight: tabH, g: g.toFixed(2), rho1: rho1.toFixed(2), rho2: '0.00', thetaDeg: thetaDeg.toFixed(1) },
@@ -1016,7 +1068,7 @@ export class PaperAlfaGeometry {
     };
 
     const parts = [mantlePart];
-    const layout = this.layoutPartsOnA4(parts, margin);
+    const layout = this.layoutPartsOnA4(parts, margin, params.useMosaic);
     return {
       type: 'eccentric',
       parameters: { d1, d2, height: L, z1, z2, tabHeight: tabH },
@@ -1118,7 +1170,7 @@ export class PaperAlfaGeometry {
       parts.push(this.buildPolygonCapPiece(d1 / 2, sides, `Tapa Inferior (${sides}-Gon)`, 'bottom-cap'));
     }
 
-    const layout = this.layoutPartsOnA4(parts, margin);
+    const layout = this.layoutPartsOnA4(parts, margin, params.useMosaic);
     return {
       type: 'prism',
       parameters: { d1, d2: d1, height: h, sides, tabHeight: tabH },
@@ -1230,7 +1282,7 @@ export class PaperAlfaGeometry {
       parts.push(this.buildPolygonCapPiece(rBase, sides, `Base Inferior (${sides}-Gon)`, 'bottom-cap'));
     }
 
-    const layout = this.layoutPartsOnA4(parts, margin);
+    const layout = this.layoutPartsOnA4(parts, margin, params.useMosaic);
     return {
       type: 'pyramid',
       parameters: { d1, d2: 0, height: h, sides, tabHeight: tabH },
@@ -1318,7 +1370,7 @@ export class PaperAlfaGeometry {
       parts.push(this.buildCapPiece(R, `Tapa Ecuador (D=${d1.toFixed(0)}mm)`, 'bottom-cap', tabH));
     }
 
-    const layout = this.layoutPartsOnA4(parts, margin);
+    const layout = this.layoutPartsOnA4(parts, margin, params.useMosaic);
     return {
       type: 'hemisphere',
       parameters: { d1, d2: 0, height: R, rings, tabHeight: tabH },
@@ -1367,7 +1419,7 @@ export class PaperAlfaGeometry {
       sphereParts.push(pSouth);
     });
 
-    const layout = this.layoutPartsOnA4(sphereParts, margin);
+    const layout = this.layoutPartsOnA4(sphereParts, margin, params.useMosaic);
     return {
       type: 'sphere',
       parameters: { d1, d2: 0, height: d1, rings: rings * 2, tabHeight: tabH },
@@ -1462,7 +1514,7 @@ export class PaperAlfaGeometry {
       });
     }
 
-    const layout = this.layoutPartsOnA4(parts, margin);
+    const layout = this.layoutPartsOnA4(parts, margin, params.useMosaic);
     return {
       type: 'loft',
       parameters: { stations, tabHeight: tabH },

@@ -530,7 +530,7 @@ export class PaperAlfaViewer2D {
         // Dobleces valle (línea continua negra fina)
         (lines.valleyFolds || []).forEach(l => partG.appendChild(this.createSVGPathOrLine(l, '#000000', '0.35', 'none')));
         // Marcas CAD técnicas (cruces X de centro y eje)
-        (lines.markings || []).forEach(l => partG.appendChild(this.createSVGPathOrLine(l, l.color || '#FF3B30', (l.width || 0.45).toString(), l.type === 'centroid-x' ? '1, 0.5' : 'none')));
+        (lines.markings || []).forEach(l => partG.appendChild(this.createSVGPathOrLine(l, l.color || '#FF3B30', (l.width || 0.45).toString(), l.type === 'centroid-x' ? '1, 0.5' : (l.type === 'registration' ? '6, 4' : 'none'))));
         // Cortes exteriores (negro continuo)
         (lines.cuts || []).forEach(l => partG.appendChild(this.createSVGPathOrLine(l, '#090D14', '0.55', 'none')));
 

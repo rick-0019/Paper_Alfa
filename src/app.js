@@ -99,9 +99,8 @@ class PaperAlfaApp {
   bindParameterControls() {
     const paramInputs = [
       'input-d1', 'input-d2', 'input-sides', 'input-rings', 'input-h', 
-      'input-tab-h', 'input-teeth', 'input-margin', 'check-top-cap', 
-      'check-bottom-cap', 'check-no-tabs',
-      'input-loft-tab-h', 'check-loft-no-tabs', 'check-loft-caps'
+      'input-tab-h', 'input-teeth', 'check-no-tabs', 'check-top-cap', 'check-bottom-cap', 'check-ruler', 'check-mosaic',
+      'input-loft-tab-h', 'check-loft-no-tabs', 'check-loft-caps', 'check-loft-mosaic'
     ];
     
     paramInputs.forEach(id => {
@@ -118,6 +117,14 @@ class PaperAlfaApp {
     if (c1 && c2) {
       c1.addEventListener('change', () => { c2.checked = c1.checked; this.recalculateAndRender(); });
       c2.addEventListener('change', () => { c1.checked = c2.checked; this.recalculateAndRender(); });
+    }
+
+    // Sincronizar checkboxes de Mosaico
+    const m1 = document.getElementById('check-mosaic');
+    const m2 = document.getElementById('check-loft-mosaic');
+    if (m1 && m2) {
+      m1.addEventListener('change', () => { m2.checked = m1.checked; this.recalculateAndRender(); });
+      m2.addEventListener('change', () => { m1.checked = m2.checked; this.recalculateAndRender(); });
     }
 
     const btnAddStation = document.getElementById('btn-add-station');
@@ -1406,6 +1413,8 @@ class PaperAlfaApp {
     const margin = parseFloat(document.getElementById('input-margin')?.value) || 5;
     const incTop = document.getElementById('check-top-cap')?.checked !== false;
     const incBottom = document.getElementById('check-bottom-cap')?.checked !== false;
+    const useMosaic = (document.getElementById('check-mosaic')?.checked === true) || 
+                      (document.getElementById('check-loft-mosaic')?.checked === true);
 
     // Atenuar controles de solapas en UI cuando está activo "Sin Pestañas"
     const groupTabH = document.getElementById('group-tab-h');
@@ -1429,7 +1438,8 @@ class PaperAlfaApp {
       teethPerArc: teeth,
       marginSecurity: margin,
       includeTopCap: incTop,
-      includeBottomCap: incBottom
+      includeBottomCap: incBottom,
+      useMosaic: useMosaic
     };
 
     // Ejecutar motor matemático según primitiva o fase
@@ -1450,7 +1460,8 @@ class PaperAlfaApp {
         tabHeight: loftTabH,
         teethPerArc: 24, // Dientes más densos para fuselajes
         marginSecurity: margin,
-        includeCaps: incCaps
+        includeCaps: incCaps,
+        useMosaic: useMosaic
       });
     } else if (type === 'hemisphere') {
       this.currentModelData = this.geometry.calculateHemisphere(params);
