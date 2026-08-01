@@ -465,12 +465,12 @@ export class PaperAlfaViewer2D {
     const bgRect = this.createSVGRect(minX, minY, maxX - minX, maxY - minY, '#0f172a', 1.0);
     pageGroup.appendChild(bgRect);
 
-    // Grilla A4 (Rectángulos verdes / blancos)
+    // Grilla A4 (Rectángulos blancos)
     for (let x = minX; x < maxX; x += this.A4_WIDTH) {
       for (let y = minY; y < maxY; y += this.A4_HEIGHT) {
-        const sheet = this.createSVGRect(x, y, this.A4_WIDTH, this.A4_HEIGHT, 'none', 1.0);
-        sheet.setAttribute('stroke', '#10B981'); // Verde brillante para la grilla
-        sheet.setAttribute('stroke-width', '1.5');
+        const sheet = this.createSVGRect(x, y, this.A4_WIDTH, this.A4_HEIGHT, '#FFFFFF', 1.0);
+        sheet.setAttribute('stroke', '#CBD5E1'); // Gris sutil para los bordes de la hoja
+        sheet.setAttribute('stroke-width', '1');
         sheet.setAttribute('stroke-dasharray', '10, 5');
         pageGroup.appendChild(sheet);
 
