@@ -402,6 +402,34 @@ class PaperAlfaApp {
         { id: 4, x: 240, z: 69.7, d: 126.7, shape: 'circle' },
         { id: 5, x: 320, z: 96.3, d: 73.3, shape: 'circle' },
         { id: 6, x: 400, z: 123, d: 20, shape: 'circle' }
+      ],
+      'preset-loft-mig25-body': [
+        { id: 1, x: 0, z: 0, d: 2, shape: 'circle' },
+        { id: 2, x: 25, z: 0, d: 15, shape: 'circle' },
+        { id: 3, x: 60, z: 0, d: 25, shape: 'ellipse', w: 18, h: 25 },
+        { id: 4, x: 120, z: 0, d: 40, shape: 'rect', w: 32, h: 28 },
+        { id: 5, x: 200, z: 0, d: 40, shape: 'rect', w: 42, h: 28 },
+        { id: 6, x: 260, z: 0, d: 40, shape: 'rect', w: 38, h: 20 }
+      ],
+      'preset-loft-mig25-intake-l': [
+        { id: 1, x: 0, z: 0, d: 25, shape: 'rect', w: 12, h: 25 },
+        { id: 2, x: 45, z: -5, d: 25, shape: 'rect', w: 16, h: 28 },
+        { id: 3, x: 90, z: -10, d: 22, shape: 'circle' }
+      ],
+      'preset-loft-mig25-intake-r': [
+        { id: 1, x: 0, z: 0, d: 25, shape: 'rect', w: 12, h: 25 },
+        { id: 2, x: 45, z: 5, d: 25, shape: 'rect', w: 16, h: 28 },
+        { id: 3, x: 90, z: 10, d: 22, shape: 'circle' }
+      ],
+      'preset-loft-mig25-nozzle-l': [
+        { id: 1, x: 0, z: -10, d: 22, shape: 'circle' },
+        { id: 2, x: 20, z: -10, d: 18, shape: 'circle' },
+        { id: 3, x: 45, z: -10, d: 24, shape: 'circle' }
+      ],
+      'preset-loft-mig25-nozzle-r': [
+        { id: 1, x: 0, z: 10, d: 22, shape: 'circle' },
+        { id: 2, x: 20, z: 10, d: 18, shape: 'circle' },
+        { id: 3, x: 45, z: 10, d: 24, shape: 'circle' }
       ]
     };
 
