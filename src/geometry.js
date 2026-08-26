@@ -1488,7 +1488,8 @@ export class PaperAlfaGeometry {
         teethPerArc: teethCount,
         marginSecurity: margin,
         includeTopCap: false,
-        includeBottomCap: false
+        includeBottomCap: false,
+        drawCenterline: params.drawCenterline
       };
 
       let segData;
