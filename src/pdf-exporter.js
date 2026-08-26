@@ -324,6 +324,10 @@ export class PaperAlfaPdfExporter {
           doc.setDrawColor(255, 59, 48); // Rojo técnica X
           doc.setLineWidth(0.15);
           doc.setLineDash([1, 0.5], 0);
+        } else if (line.type === 'centerline') {
+          doc.setDrawColor(239, 68, 68); // #EF4444 Rojo
+          doc.setLineWidth(0.2);
+          doc.setLineDash([6, 4], 0);
         } else {
           doc.setDrawColor(0, 102, 204); // Azul eje 0,0 +
           doc.setLineWidth(0.12);

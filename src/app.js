@@ -1415,6 +1415,8 @@ class PaperAlfaApp {
     const incBottom = document.getElementById('check-bottom-cap')?.checked !== false;
     const useMosaic = (document.getElementById('check-mosaic')?.checked === true) || 
                       (document.getElementById('check-loft-mosaic')?.checked === true);
+    const drawCenterline = (document.getElementById('check-centerline')?.checked === true) || 
+                           (document.getElementById('check-loft-centerline')?.checked === true);
 
     // Atenuar controles de solapas en UI cuando está activo "Sin Pestañas"
     const groupTabH = document.getElementById('group-tab-h');
@@ -1439,7 +1441,8 @@ class PaperAlfaApp {
       marginSecurity: margin,
       includeTopCap: incTop,
       includeBottomCap: incBottom,
-      useMosaic: useMosaic
+      useMosaic: useMosaic,
+      drawCenterline: drawCenterline
     };
 
     // Ejecutar motor matemático según primitiva o fase
@@ -1461,7 +1464,8 @@ class PaperAlfaApp {
         teethPerArc: 24, // Dientes más densos para fuselajes
         marginSecurity: margin,
         includeCaps: incCaps,
-        useMosaic: useMosaic
+        useMosaic: useMosaic,
+        drawCenterline: drawCenterline
       });
     } else if (type === 'hemisphere') {
       this.currentModelData = this.geometry.calculateHemisphere(params);

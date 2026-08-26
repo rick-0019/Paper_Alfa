@@ -134,6 +134,14 @@ export class PaperAlfaGeometry {
     // 2. Arista derecha de cierre (corte recto)
     lines.cuts.push({ x1: pEndInner.x, y1: pEndInner.y, x2: pEndOuter.x, y2: pEndOuter.y, type: 'cut' });
 
+    // Eje de simetría central
+    if (arguments[0].drawCenterline) {
+      if (!lines.markings) lines.markings = [];
+      const pCenterInner = this.polarToCartesian(0, 0, rho2, 0);
+      const pCenterOuter = this.polarToCartesian(0, 0, rho1, 0);
+      lines.markings.push({ x1: pCenterInner.x, y1: pCenterInner.y, x2: pCenterOuter.x, y2: pCenterOuter.y, type: 'centerline' });
+    }
+
     // 3. Pestañas dentadas (dientes de sierra) y contorno superior (rho2)
     const topSawtooth = this.buildSawtoothArc(rho2, startAngle, endAngle, tabHeight, teethCount, true);
     lines.cuts.push(...topSawtooth.cuts);
@@ -552,6 +560,11 @@ export class PaperAlfaGeometry {
       lines.cuts.push({ x1: halfW, y1: -halfH, x2: halfW, y2: halfH, type: 'cut' });
       lines.cuts.push({ x1: halfW, y1: halfH, x2: -halfW, y2: halfH, type: 'cut' });
       lines.cuts.push({ x1: -halfW, y1: halfH, x2: -halfW, y2: -halfH, type: 'cut' });
+    }
+
+    if (params.drawCenterline) {
+      if (!lines.markings) lines.markings = [];
+      lines.markings.push({ x1: 0, y1: -halfH, x2: 0, y2: halfH, type: 'centerline' });
     }
 
     const mantlePart = {
@@ -1017,6 +1030,13 @@ export class PaperAlfaGeometry {
     // Borde derecho de cierre
     lines.cuts.push({ x1: V1_c[N].x, y1: V1_c[N].y, x2: V2_c[N].x, y2: V2_c[N].y, type: 'cut' });
 
+    // Eje de simetría central
+    if (params.drawCenterline) {
+      if (!lines.markings) lines.markings = [];
+      const mid = Math.floor(N / 2);
+      lines.markings.push({ x1: V1_c[mid].x, y1: V1_c[mid].y, x2: V2_c[mid].x, y2: V2_c[mid].y, type: 'centerline' });
+    }
+
     // Curvas superior e inferior con dientes de sierra (o corte a tope si tabH=0)
     const topSaw = this.buildSawtoothPolyline(V2_c, tabH, N, true);
     lines.cuts.push(...topSaw.cuts);
@@ -1128,6 +1148,11 @@ export class PaperAlfaGeometry {
       lines.mountainFolds.push({ x1: startX, y1: startY, x2: startX, y2: startY + h, type: 'mountain' });
     } else {
       lines.cuts.push({ x1: startX, y1: startY, x2: startX, y2: startY + h, type: 'cut' });
+    }
+
+    if (params.drawCenterline) {
+      if (!lines.markings) lines.markings = [];
+      lines.markings.push({ x1: 0, y1: startY, x2: 0, y2: startY + h, type: 'centerline' });
     }
 
     // Cierre derecho
@@ -1248,6 +1273,12 @@ export class PaperAlfaGeometry {
 
     const pEndOuter = this.polarToCartesian(0, 0, g, endAngle);
     lines.cuts.push({ x1: 0, y1: 0, x2: pEndOuter.x, y2: pEndOuter.y, type: 'cut' });
+
+    if (params.drawCenterline) {
+      if (!lines.markings) lines.markings = [];
+      const pCenterOuter = this.polarToCartesian(0, 0, g, 0);
+      lines.markings.push({ x1: 0, y1: 0, x2: pCenterOuter.x, y2: pCenterOuter.y, type: 'centerline' });
+    }
 
     const parts = [{
       id: 'mantle',
