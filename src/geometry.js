@@ -69,7 +69,8 @@ export class PaperAlfaGeometry {
       rBase: R_BASE,
       rTop: R_TOP,
       g,
-      box: sectorBox
+      box: sectorBox,
+      drawCenterline: params.drawCenterline
     });
     parts.push(mantlePart);
 
@@ -104,7 +105,7 @@ export class PaperAlfaGeometry {
   /**
    * Genera las rutas SVG (corte, doblez, pestañas) del Manto del Cono Truncado
    */
-  buildMantlePiece({ rho1, rho2, thetaRad, tabHeight, tabAngleDeg, teethCount, rBase, rTop, g, box }) {
+  buildMantlePiece({ rho1, rho2, thetaRad, tabHeight, tabAngleDeg, teethCount, rBase, rTop, g, box, drawCenterline }) {
     const lines = {
       cuts: [],         // Trazos de corte exterior (negro 0.5pt)
       mountainFolds: [], // Trazos de doblez montaña (azul punteado)
@@ -135,7 +136,7 @@ export class PaperAlfaGeometry {
     lines.cuts.push({ x1: pEndInner.x, y1: pEndInner.y, x2: pEndOuter.x, y2: pEndOuter.y, type: 'cut' });
 
     // Eje de simetría central
-    if (arguments[0].drawCenterline) {
+    if (drawCenterline) {
       if (!lines.markings) lines.markings = [];
       const pCenterInner = this.polarToCartesian(0, 0, rho2, 0);
       const pCenterOuter = this.polarToCartesian(0, 0, rho1, 0);
@@ -1352,7 +1353,8 @@ export class PaperAlfaGeometry {
           rBase: rBot,
           rTop,
           g,
-          box
+          box,
+          drawCenterline: params.drawCenterline
         });
         part.id = `ring_${i + 1}`;
         part.name = `Anillo ${i + 1}/${rings} (D=${(rBot * 2).toFixed(0)}→${(rTop * 2).toFixed(0)}mm)`;
