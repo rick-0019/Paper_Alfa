@@ -99,8 +99,8 @@ class PaperAlfaApp {
   bindParameterControls() {
     const paramInputs = [
       'input-d1', 'input-d2', 'input-sides', 'input-rings', 'input-h', 
-      'input-tab-h', 'input-teeth', 'check-no-tabs', 'check-top-cap', 'check-bottom-cap', 'check-ruler', 'check-mosaic',
-      'input-loft-tab-h', 'check-loft-no-tabs', 'check-loft-caps', 'check-loft-mosaic'
+      'input-tab-h', 'input-teeth', 'check-no-tabs', 'check-top-cap', 'check-bottom-cap', 'check-ruler', 'check-mosaic', 'check-centerline',
+      'input-loft-tab-h', 'check-loft-no-tabs', 'check-loft-caps', 'check-loft-mosaic', 'check-loft-centerline'
     ];
     
     paramInputs.forEach(id => {
