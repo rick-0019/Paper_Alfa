@@ -102,7 +102,7 @@ class PaperAlfaApp {
       'input-tab-h', 'input-teeth', 'check-no-tabs', 'check-top-cap', 'check-bottom-cap', 'check-ruler', 'check-mosaic', 'check-centerline',
       'input-loft-tab-h', 'check-loft-no-tabs', 'check-loft-caps', 'check-loft-mosaic', 'check-loft-centerline',
       'input-wing-span', 'input-wing-root', 'input-wing-tip', 'input-wing-sweep', 'input-wing-thick', 
-      'input-wing-le', 'input-wing-mid',
+      'input-wing-le', 'input-wing-mid', 'input-wing-te',
       'input-wing-ribs', 'input-wing-spar-pos', 'input-wing-spar-w', 'input-wing-spar-h', 'check-wing-flat', 'check-wing-spar-full'
     ];
     
@@ -1460,9 +1460,14 @@ class PaperAlfaApp {
 
     // Ejecutar motor matemático según primitiva o fase
     if (this.activePhase === 'phase3') {
-      const leRatio = (parseFloat(document.getElementById('input-wing-le')?.value) || 20) / 100;
-      const midRatio = (parseFloat(document.getElementById('input-wing-mid')?.value) || 40) / 100;
-      const teRatio = 1.0 - leRatio - midRatio;
+      let rawLe = parseFloat(document.getElementById('input-wing-le')?.value) || 20;
+      let rawMid = parseFloat(document.getElementById('input-wing-mid')?.value) || 40;
+      let rawTe = parseFloat(document.getElementById('input-wing-te')?.value) || 40;
+      
+      const sum = rawLe + rawMid + rawTe;
+      const leRatio = (rawLe / sum);
+      const midRatio = (rawMid / sum);
+      const teRatio = (rawTe / sum);
       
       const sparFull = document.getElementById('check-wing-spar-full')?.checked !== false;
       const sparPosRatio = sparFull ? leRatio : (parseFloat(document.getElementById('input-wing-spar-pos')?.value) || 30) / 100;

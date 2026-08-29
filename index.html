@@ -313,15 +313,19 @@
         <div class="card-panel">
           <div style="display: flex; gap: 10px;">
             <div class="form-group" style="flex: 1;">
-              <label for="input-wing-le">Longitud Nariz <span class="unit">% C</span></label>
-              <input type="number" id="input-wing-le" value="20" min="5" max="50">
+              <label for="input-wing-le">Nariz <span class="unit">%</span></label>
+              <input type="number" id="input-wing-le" value="20" min="5" max="80">
             </div>
             <div class="form-group" style="flex: 1;">
-              <label for="input-wing-mid">Tramo Recto <span class="unit">% C</span></label>
-              <input type="number" id="input-wing-mid" value="40" min="10" max="80" title="Controla el ancho de la zona plana central">
+              <label for="input-wing-mid">Centro <span class="unit">%</span></label>
+              <input type="number" id="input-wing-mid" value="40" min="10" max="80">
+            </div>
+            <div class="form-group" style="flex: 1;">
+              <label for="input-wing-te">Cola <span class="unit">%</span></label>
+              <input type="number" id="input-wing-te" value="40" min="5" max="80">
             </div>
           </div>
-          <p style="font-size: 10px; color: var(--text-muted); margin-top: -4px;">(La cola triangular será el porcentaje restante)</p>
+          <p style="font-size: 10px; color: var(--text-muted); margin-top: -4px;">(Si la suma no es 100%, se ajustarán proporcionalmente)</p>
           <label class="checkbox-row" style="margin-top: 10px;">
             <input type="checkbox" id="check-wing-flat" checked>
             <span>Fondo Plano (Base recta para pegar)</span>
