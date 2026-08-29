@@ -1549,55 +1549,69 @@ export class PaperAlfaGeometry {
    * Genera la estructura interna y pieles de un ala
    * @param {Object} params
    */
+  
   calculateWingStructure(params) {
-    const { span, rootChord, tipChord, sweep, thickness, ribCount, sparPosRatio, sparWidthRatio, isFlatBottom, tabHeight, useMosaic, marginSecurity } = params;
+    const { span, rootChord, tipChord, sweep, thickness, leRatio, teRatio, ribCount, sparPosRatio, sparWidthRatio, sparHeightRatio, isFlatBottom, tabHeight, useMosaic, marginSecurity } = params;
     const parts = [];
     const margin = marginSecurity || 5;
     
-    const nacaThickness = (x, t) => {
-      return 5 * t * (0.2969 * Math.sqrt(Math.max(x, 0)) - 0.1260 * x - 0.3516 * Math.pow(x, 2) + 0.2843 * Math.pow(x, 3) - 0.1015 * Math.pow(x, 4));
+    const midRatio = Math.max(0, 1.0 - leRatio - teRatio);
+
+    const getThicknessProfile = (xRatio, t) => {
+      if (xRatio <= leRatio) {
+        if (leRatio <= 0) return t;
+        const normX = (leRatio - xRatio) / leRatio;
+        return t * Math.sqrt(Math.max(0, 1 - normX * normX));
+      } else if (xRatio >= 1.0 - teRatio) {
+        if (teRatio <= 0) return t;
+        const normX = (xRatio - (1.0 - teRatio)) / teRatio;
+        return t * (1.0 - normX);
+      } else {
+        return t;
+      }
     };
 
-    const sparStartPct = sparPosRatio;
-    const sparEndPct = Math.min(sparPosRatio + sparWidthRatio, 0.9);
+    const sparStartPct = Math.max(leRatio, sparPosRatio);
+    const sparEndPct = Math.min(sparStartPct + sparWidthRatio, 1.0 - teRatio);
     
     const dy = span / (Math.max(ribCount - 1, 1));
 
     // 1. Ribs
     for (let i = 0; i < ribCount; i++) {
-      const t = ribCount > 1 ? i / (ribCount - 1) : 0;
-      const localChord = rootChord * (1 - t) + tipChord * t;
+      const pct = ribCount > 1 ? i / (ribCount - 1) : 0;
+      const localChord = rootChord * (1 - pct) + tipChord * pct;
       const localThickRatio = thickness / rootChord; 
       
       const pts = [];
-      const numPts = 40;
+      const numPts = 60;
       
       // Top surface (trailing to leading)
       for (let j = numPts; j >= 0; j--) {
         const xc = j / numPts;
-        const yt = nacaThickness(xc, localThickRatio) * localChord;
+        const yt = getThicknessProfile(xc, localThickRatio) * localChord;
         pts.push({ x: xc * localChord, y: isFlatBottom ? -(yt * 2) : -yt });
       }
       
       // Bottom surface (leading to trailing)
       for (let j = 1; j <= numPts; j++) {
         const xc = j / numPts;
-        const yt = nacaThickness(xc, localThickRatio) * localChord;
+        const yt = getThicknessProfile(xc, localThickRatio) * localChord;
         pts.push({ x: xc * localChord, y: isFlatBottom ? 0 : yt });
       }
       
       const sX1 = sparStartPct * localChord;
       const sX2 = sparEndPct * localChord;
       
-      const getThick = (xc) => nacaThickness(xc, localThickRatio) * localChord;
+      const getThick = (xc) => getThicknessProfile(xc, localThickRatio) * localChord;
       
       let sYTop = isFlatBottom ? -(getThick(sparStartPct)*2) : -getThick(sparStartPct);
       let sYBot = isFlatBottom ? 0 : getThick(sparStartPct);
-      let sYTop2 = isFlatBottom ? -(getThick(sparEndPct)*2) : -getThick(sparEndPct);
-      let sYBot2 = isFlatBottom ? 0 : getThick(sparEndPct);
       
-      const boxTop = Math.max(sYTop, sYTop2) + 1; 
-      const boxBot = Math.min(sYBot, sYBot2) - 1; 
+      // Box height is bounded by sparHeightRatio
+      const maxBoxH = Math.abs(sYTop - sYBot);
+      const boxH = maxBoxH * sparHeightRatio;
+      const boxTop = sYTop + (maxBoxH - boxH) / 2;
+      const boxBot = sYBot - (maxBoxH - boxH) / 2;
       const boxLeft = sX1;
       const boxRight = sX2;
       
@@ -1636,14 +1650,14 @@ export class PaperAlfaGeometry {
     const calcSparBox = (chord) => {
       const sX1 = sparStartPct * chord;
       const sX2 = sparEndPct * chord;
-      const getThick = (xc) => nacaThickness(xc, thickness / rootChord) * chord;
+      const getThick = (xc) => getThicknessProfile(xc, thickness / rootChord) * chord;
       let sYTop = isFlatBottom ? -(getThick(sparStartPct)*2) : -getThick(sparStartPct);
       let sYBot = isFlatBottom ? 0 : getThick(sparStartPct);
-      let sYTop2 = isFlatBottom ? -(getThick(sparEndPct)*2) : -getThick(sparEndPct);
-      let sYBot2 = isFlatBottom ? 0 : getThick(sparEndPct);
+      const maxBoxH = Math.abs(sYTop - sYBot);
+      const boxH = maxBoxH * sparHeightRatio;
       return { 
         w: sX2 - sX1, 
-        h: Math.min(sYBot, sYBot2) - Math.max(sYTop, sYTop2) - 2 
+        h: boxH 
       };
     };
     
@@ -1656,13 +1670,13 @@ export class PaperAlfaGeometry {
     const faces = [rootSpar.w, rootSpar.h, rootSpar.w, rootSpar.h];
     const facesTip = [tipSpar.w, tipSpar.h, tipSpar.w, tipSpar.h];
     const sparPtsRoot = [{x: 0, y: 0}];
-    const sparPtsTip = [{x: 0, y: span}];
+    const sparPtsTip = [{x: sweep, y: span}];
     
     for (let i = 0; i < 4; i++) {
       curXRoot += faces[i];
       curXTip += facesTip[i];
       sparPtsRoot.push({ x: curXRoot, y: 0 });
-      sparPtsTip.push({ x: curXTip, y: span });
+      sparPtsTip.push({ x: sweep + curXTip, y: span });
     }
     
     for (let i = 0; i < 5; i++) {
@@ -1673,19 +1687,19 @@ export class PaperAlfaGeometry {
       }
     }
     sparLines.cuts.push({ x1: 0, y1: 0, x2: curXRoot, y2: 0, type: 'cut' });
-    sparLines.cuts.push({ x1: 0, y1: span, x2: curXTip, y2: span, type: 'cut' });
+    sparLines.cuts.push({ x1: sweep, y1: span, x2: sweep + curXTip, y2: span, type: 'cut' });
     
     if (tabHeight > 0) {
       sparLines.cuts.push({ x1: curXRoot, y1: 0, x2: curXRoot + tabHeight, y2: tabHeight, type: 'cut' });
-      sparLines.cuts.push({ x1: curXRoot + tabHeight, y1: tabHeight, x2: curXTip + tabHeight, y2: span - tabHeight, type: 'cut' });
-      sparLines.cuts.push({ x1: curXTip + tabHeight, y2: span - tabHeight, x2: curXTip, y2: span, type: 'cut' });
-      sparLines.mountainFolds.push({ x1: curXRoot, y1: 0, x2: curXTip, y2: span, type: 'mountain' });
+      sparLines.cuts.push({ x1: curXRoot + tabHeight, y1: tabHeight, x2: sweep + curXTip + tabHeight, y2: span - tabHeight, type: 'cut' });
+      sparLines.cuts.push({ x1: sweep + curXTip + tabHeight, y2: span - tabHeight, x2: sweep + curXTip, y2: span, type: 'cut' });
+      sparLines.mountainFolds.push({ x1: curXRoot, y1: 0, x2: sweep + curXTip, y2: span, type: 'mountain' });
     }
     
     let sparPart = {
       id: 'spar_box',
       name: 'Cajón Estructural (Spar)',
-      boundingBox: { minX: 0, maxX: Math.max(curXRoot, curXTip) + tabHeight, minY: 0, maxY: span, width: Math.max(curXRoot, curXTip) + tabHeight, height: span },
+      boundingBox: { minX: 0, maxX: Math.max(curXRoot, sweep + curXTip) + tabHeight, minY: 0, maxY: span, width: Math.max(curXRoot, sweep + curXTip) + tabHeight, height: span },
       lines: sparLines
     };
     parts.push(this.centerPieceGeometry(sparPart));
@@ -1703,7 +1717,7 @@ export class PaperAlfaGeometry {
       for (let j = 0; j <= numPts; j++) {
         const xc = j / numPts;
         const x = xc * chord;
-        const yt = nacaThickness(xc, thicknessRatio) * chord;
+        const yt = getThicknessProfile(xc, thicknessRatio) * chord;
         const yTop = isFlatBottom ? -(yt * 2) : -yt;
         const yBot = isFlatBottom ? 0 : yt;
         
@@ -1730,26 +1744,26 @@ export class PaperAlfaGeometry {
       const tW = tipW1 + tipW2;
       
       lns.cuts.push({ x1: 0, y1: 0, x2: rW, y2: 0, type: 'cut' });
-      lns.cuts.push({ x1: 0, y1: span, x2: tW, y2: span, type: 'cut' });
-      lns.cuts.push({ x1: 0, y1: 0, x2: 0, y2: span, type: 'cut' });
+      lns.cuts.push({ x1: sweep, y1: span, x2: sweep + tW, y2: span, type: 'cut' });
+      lns.cuts.push({ x1: 0, y1: 0, x2: sweep, y2: span, type: 'cut' });
       
       if (tabHeight > 0) {
-        lns.mountainFolds.push({ x1: rW, y1: 0, x2: tW, y2: span, type: 'mountain' });
+        lns.mountainFolds.push({ x1: rW, y1: 0, x2: sweep + tW, y2: span, type: 'mountain' });
         lns.cuts.push({ x1: rW, y1: 0, x2: rW+tabHeight, y2: tabHeight, type: 'cut' });
-        lns.cuts.push({ x1: rW+tabHeight, y1: tabHeight, x2: tW+tabHeight, y2: span-tabHeight, type: 'cut' });
-        lns.cuts.push({ x1: tW+tabHeight, y1: span-tabHeight, x2: tW, y2: span, type: 'cut' });
+        lns.cuts.push({ x1: rW+tabHeight, y1: tabHeight, x2: sweep+tW+tabHeight, y2: span-tabHeight, type: 'cut' });
+        lns.cuts.push({ x1: sweep+tW+tabHeight, y1: span-tabHeight, x2: sweep+tW, y2: span, type: 'cut' });
       } else {
-        lns.cuts.push({ x1: rW, y1: 0, x2: tW, y2: span, type: 'cut' });
+        lns.cuts.push({ x1: rW, y1: 0, x2: sweep + tW, y2: span, type: 'cut' });
       }
       
       if (rootW2 > 0 || tipW2 > 0) {
-        lns.mountainFolds.push({ x1: rootW1, y1: 0, x2: tipW1, y2: span, type: 'mountain' });
+        lns.mountainFolds.push({ x1: rootW1, y1: 0, x2: sweep + tipW1, y2: span, type: 'mountain' });
       }
       
       let part = {
         id,
         name,
-        boundingBox: { minX: 0, maxX: Math.max(rW, tW) + tabHeight, minY: 0, maxY: span, width: Math.max(rW, tW) + tabHeight, height: span },
+        boundingBox: { minX: 0, maxX: Math.max(rW, sweep + tW) + tabHeight, minY: 0, maxY: span, width: Math.max(rW, sweep + tW) + tabHeight, height: span },
         lines: lns
       };
       return this.centerPieceGeometry(part);
