@@ -1544,4 +1544,237 @@ export class PaperAlfaGeometry {
       parts
     };
   }
+
+  /**
+   * Genera la estructura interna y pieles de un ala
+   * @param {Object} params
+   */
+  calculateWingStructure(params) {
+    const { span, rootChord, tipChord, sweep, thickness, ribCount, sparPosRatio, sparWidthRatio, isFlatBottom, tabHeight, useMosaic, marginSecurity } = params;
+    const parts = [];
+    const margin = marginSecurity || 5;
+    
+    const nacaThickness = (x, t) => {
+      return 5 * t * (0.2969 * Math.sqrt(Math.max(x, 0)) - 0.1260 * x - 0.3516 * Math.pow(x, 2) + 0.2843 * Math.pow(x, 3) - 0.1015 * Math.pow(x, 4));
+    };
+
+    const sparStartPct = sparPosRatio;
+    const sparEndPct = Math.min(sparPosRatio + sparWidthRatio, 0.9);
+    
+    const dy = span / (Math.max(ribCount - 1, 1));
+
+    // 1. Ribs
+    for (let i = 0; i < ribCount; i++) {
+      const t = ribCount > 1 ? i / (ribCount - 1) : 0;
+      const localChord = rootChord * (1 - t) + tipChord * t;
+      const localThickRatio = thickness / rootChord; 
+      
+      const pts = [];
+      const numPts = 40;
+      
+      // Top surface (trailing to leading)
+      for (let j = numPts; j >= 0; j--) {
+        const xc = j / numPts;
+        const yt = nacaThickness(xc, localThickRatio) * localChord;
+        pts.push({ x: xc * localChord, y: isFlatBottom ? -(yt * 2) : -yt });
+      }
+      
+      // Bottom surface (leading to trailing)
+      for (let j = 1; j <= numPts; j++) {
+        const xc = j / numPts;
+        const yt = nacaThickness(xc, localThickRatio) * localChord;
+        pts.push({ x: xc * localChord, y: isFlatBottom ? 0 : yt });
+      }
+      
+      const sX1 = sparStartPct * localChord;
+      const sX2 = sparEndPct * localChord;
+      
+      const getThick = (xc) => nacaThickness(xc, localThickRatio) * localChord;
+      
+      let sYTop = isFlatBottom ? -(getThick(sparStartPct)*2) : -getThick(sparStartPct);
+      let sYBot = isFlatBottom ? 0 : getThick(sparStartPct);
+      let sYTop2 = isFlatBottom ? -(getThick(sparEndPct)*2) : -getThick(sparEndPct);
+      let sYBot2 = isFlatBottom ? 0 : getThick(sparEndPct);
+      
+      const boxTop = Math.max(sYTop, sYTop2) + 1; 
+      const boxBot = Math.min(sYBot, sYBot2) - 1; 
+      const boxLeft = sX1;
+      const boxRight = sX2;
+      
+      const ribLines = { cuts: [], markings: [] };
+      
+      for (let k = 0; k < pts.length - 1; k++) {
+        ribLines.cuts.push({ x1: pts[k].x, y1: pts[k].y, x2: pts[k+1].x, y2: pts[k+1].y, type: 'cut' });
+      }
+      ribLines.cuts.push({ x1: pts[pts.length-1].x, y1: pts[pts.length-1].y, x2: pts[0].x, y2: pts[0].y, type: 'cut' });
+      
+      ribLines.cuts.push({ x1: boxLeft, y1: boxTop, x2: boxRight, y2: boxTop, type: 'cut' });
+      ribLines.cuts.push({ x1: boxRight, y1: boxTop, x2: boxRight, y2: boxBot, type: 'cut' });
+      ribLines.cuts.push({ x1: boxRight, y1: boxBot, x2: boxLeft, y2: boxBot, type: 'cut' });
+      ribLines.cuts.push({ x1: boxLeft, y1: boxBot, x2: boxLeft, y2: boxTop, type: 'cut' });
+      
+      ribLines.markings.push({ x1: (boxLeft+boxRight)/2 - 5, y1: (boxTop+boxBot)/2, x2: (boxLeft+boxRight)/2 + 5, y2: (boxTop+boxBot)/2, type: 'centroid-x' });
+      ribLines.markings.push({ x1: (boxLeft+boxRight)/2, y1: (boxTop+boxBot)/2 - 5, x2: (boxLeft+boxRight)/2, y2: (boxTop+boxBot)/2 + 5, type: 'centroid-x' });
+      
+      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+      pts.forEach(p => { minX=Math.min(minX, p.x); maxX=Math.max(maxX, p.x); minY=Math.min(minY, p.y); maxY=Math.max(maxY, p.y); });
+      const rBox = { minX, maxX, minY, maxY, width: maxX - minX, height: maxY - minY };
+      
+      let ribPart = {
+        id: `rib_${i+1}`,
+        name: `Cuaderna ${i+1}/${ribCount} (C=${Math.round(localChord)}mm)`,
+        width: rBox.width,
+        height: rBox.height,
+        lines: ribLines,
+        boundingBox: rBox
+      };
+      
+      parts.push(this.centerPieceGeometry(ribPart));
+    }
+    
+    // 2. Spar Box
+    const calcSparBox = (chord) => {
+      const sX1 = sparStartPct * chord;
+      const sX2 = sparEndPct * chord;
+      const getThick = (xc) => nacaThickness(xc, thickness / rootChord) * chord;
+      let sYTop = isFlatBottom ? -(getThick(sparStartPct)*2) : -getThick(sparStartPct);
+      let sYBot = isFlatBottom ? 0 : getThick(sparStartPct);
+      let sYTop2 = isFlatBottom ? -(getThick(sparEndPct)*2) : -getThick(sparEndPct);
+      let sYBot2 = isFlatBottom ? 0 : getThick(sparEndPct);
+      return { 
+        w: sX2 - sX1, 
+        h: Math.min(sYBot, sYBot2) - Math.max(sYTop, sYTop2) - 2 
+      };
+    };
+    
+    const rootSpar = calcSparBox(rootChord);
+    const tipSpar = calcSparBox(tipChord);
+    
+    const sparLines = { cuts: [], mountainFolds: [], valleyFolds: [], tabs: [] };
+    let curXRoot = 0;
+    let curXTip = 0;
+    const faces = [rootSpar.w, rootSpar.h, rootSpar.w, rootSpar.h];
+    const facesTip = [tipSpar.w, tipSpar.h, tipSpar.w, tipSpar.h];
+    const sparPtsRoot = [{x: 0, y: 0}];
+    const sparPtsTip = [{x: 0, y: span}];
+    
+    for (let i = 0; i < 4; i++) {
+      curXRoot += faces[i];
+      curXTip += facesTip[i];
+      sparPtsRoot.push({ x: curXRoot, y: 0 });
+      sparPtsTip.push({ x: curXTip, y: span });
+    }
+    
+    for (let i = 0; i < 5; i++) {
+      if (i > 0 && i < 4) {
+        sparLines.mountainFolds.push({ x1: sparPtsRoot[i].x, y1: 0, x2: sparPtsTip[i].x, y2: span, type: 'mountain' });
+      } else {
+        sparLines.cuts.push({ x1: sparPtsRoot[i].x, y1: 0, x2: sparPtsTip[i].x, y2: span, type: 'cut' });
+      }
+    }
+    sparLines.cuts.push({ x1: 0, y1: 0, x2: curXRoot, y2: 0, type: 'cut' });
+    sparLines.cuts.push({ x1: 0, y1: span, x2: curXTip, y2: span, type: 'cut' });
+    
+    if (tabHeight > 0) {
+      sparLines.cuts.push({ x1: curXRoot, y1: 0, x2: curXRoot + tabHeight, y2: tabHeight, type: 'cut' });
+      sparLines.cuts.push({ x1: curXRoot + tabHeight, y1: tabHeight, x2: curXTip + tabHeight, y2: span - tabHeight, type: 'cut' });
+      sparLines.cuts.push({ x1: curXTip + tabHeight, y2: span - tabHeight, x2: curXTip, y2: span, type: 'cut' });
+      sparLines.mountainFolds.push({ x1: curXRoot, y1: 0, x2: curXTip, y2: span, type: 'mountain' });
+    }
+    
+    let sparPart = {
+      id: 'spar_box',
+      name: 'Cajón Estructural (Spar)',
+      boundingBox: { minX: 0, maxX: Math.max(curXRoot, curXTip) + tabHeight, minY: 0, maxY: span, width: Math.max(curXRoot, curXTip) + tabHeight, height: span },
+      lines: sparLines
+    };
+    parts.push(this.centerPieceGeometry(sparPart));
+    
+    // 3. Skins
+    const calcSkinLengths = (chord, thicknessRatio) => {
+      let leLen = 0, teTopLen = 0, teBotLen = 0;
+      const numPts = 60;
+      const sX1 = sparStartPct * chord;
+      const sX2 = sparEndPct * chord;
+      
+      let prevXTop = 0, prevYTop = isFlatBottom ? 0 : 0;
+      let prevXBot = 0, prevYBot = 0;
+      
+      for (let j = 0; j <= numPts; j++) {
+        const xc = j / numPts;
+        const x = xc * chord;
+        const yt = nacaThickness(xc, thicknessRatio) * chord;
+        const yTop = isFlatBottom ? -(yt * 2) : -yt;
+        const yBot = isFlatBottom ? 0 : yt;
+        
+        if (j > 0) {
+          const dTop = Math.sqrt(Math.pow(x - prevXTop, 2) + Math.pow(yTop - prevYTop, 2));
+          const dBot = Math.sqrt(Math.pow(x - prevXBot, 2) + Math.pow(yBot - prevYBot, 2));
+          
+          if (x <= sX1) {
+            leLen += dTop + dBot;
+          } else if (x >= sX2) {
+            teTopLen += dTop;
+            teBotLen += dBot;
+          }
+        }
+        prevXTop = x; prevYTop = yTop;
+        prevXBot = x; prevYBot = yBot;
+      }
+      return { leLen, teTopLen, teBotLen };
+    };
+
+    const genSkin = (id, name, rootW1, rootW2, tipW1, tipW2) => {
+      const lns = { cuts: [], mountainFolds: [], valleyFolds: [], tabs: [] };
+      const rW = rootW1 + rootW2;
+      const tW = tipW1 + tipW2;
+      
+      lns.cuts.push({ x1: 0, y1: 0, x2: rW, y2: 0, type: 'cut' });
+      lns.cuts.push({ x1: 0, y1: span, x2: tW, y2: span, type: 'cut' });
+      lns.cuts.push({ x1: 0, y1: 0, x2: 0, y2: span, type: 'cut' });
+      
+      if (tabHeight > 0) {
+        lns.mountainFolds.push({ x1: rW, y1: 0, x2: tW, y2: span, type: 'mountain' });
+        lns.cuts.push({ x1: rW, y1: 0, x2: rW+tabHeight, y2: tabHeight, type: 'cut' });
+        lns.cuts.push({ x1: rW+tabHeight, y1: tabHeight, x2: tW+tabHeight, y2: span-tabHeight, type: 'cut' });
+        lns.cuts.push({ x1: tW+tabHeight, y1: span-tabHeight, x2: tW, y2: span, type: 'cut' });
+      } else {
+        lns.cuts.push({ x1: rW, y1: 0, x2: tW, y2: span, type: 'cut' });
+      }
+      
+      if (rootW2 > 0 || tipW2 > 0) {
+        lns.mountainFolds.push({ x1: rootW1, y1: 0, x2: tipW1, y2: span, type: 'mountain' });
+      }
+      
+      let part = {
+        id,
+        name,
+        boundingBox: { minX: 0, maxX: Math.max(rW, tW) + tabHeight, minY: 0, maxY: span, width: Math.max(rW, tW) + tabHeight, height: span },
+        lines: lns
+      };
+      return this.centerPieceGeometry(part);
+    };
+
+    const rootSkins = calcSkinLengths(rootChord, thickness / rootChord);
+    const tipSkins = calcSkinLengths(tipChord, thickness / rootChord);
+    
+    parts.push(genSkin('skin_le', 'Piel Borde de Ataque', rootSkins.leLen/2, rootSkins.leLen/2, tipSkins.leLen/2, tipSkins.leLen/2));
+    parts.push(genSkin('skin_te', 'Piel Borde de Fuga', rootSkins.teTopLen, rootSkins.teBotLen, tipSkins.teTopLen, tipSkins.teBotLen));
+
+    const layout = this.layoutPartsOnA4(parts, margin, useMosaic);
+    return {
+      type: 'wing',
+      parameters: params,
+      metrics: {
+        spanMm: span + ' mm',
+        ribsCount: ribCount,
+        surfaceAreaCm2: 'N/A',
+        fitsInSingleA4: layout.pageCount === 1 && !layout.overflow,
+        pageCount: layout.pageCount
+      },
+      pages: layout.pages,
+      parts
+    };
+  }
+
 }

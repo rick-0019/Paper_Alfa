@@ -100,7 +100,9 @@ class PaperAlfaApp {
     const paramInputs = [
       'input-d1', 'input-d2', 'input-sides', 'input-rings', 'input-h', 
       'input-tab-h', 'input-teeth', 'check-no-tabs', 'check-top-cap', 'check-bottom-cap', 'check-ruler', 'check-mosaic', 'check-centerline',
-      'input-loft-tab-h', 'check-loft-no-tabs', 'check-loft-caps', 'check-loft-mosaic', 'check-loft-centerline'
+      'input-loft-tab-h', 'check-loft-no-tabs', 'check-loft-caps', 'check-loft-mosaic', 'check-loft-centerline',
+      'input-wing-span', 'input-wing-root', 'input-wing-tip', 'input-wing-sweep', 'input-wing-thick', 
+      'input-wing-ribs', 'input-wing-spar-pos', 'input-wing-spar-w', 'check-wing-flat'
     ];
     
     paramInputs.forEach(id => {
@@ -1446,7 +1448,23 @@ class PaperAlfaApp {
     };
 
     // Ejecutar motor matemático según primitiva o fase
-    if (this.activePhase === 'phase2') {
+    if (this.activePhase === 'phase3') {
+      const wingParams = {
+        span: parseFloat(document.getElementById('input-wing-span')?.value) || 300,
+        rootChord: parseFloat(document.getElementById('input-wing-root')?.value) || 150,
+        tipChord: parseFloat(document.getElementById('input-wing-tip')?.value) || 100,
+        sweep: parseFloat(document.getElementById('input-wing-sweep')?.value) || 30,
+        thickness: parseFloat(document.getElementById('input-wing-thick')?.value) || 30,
+        ribCount: parseInt(document.getElementById('input-wing-ribs')?.value) || 5,
+        sparPosRatio: (parseFloat(document.getElementById('input-wing-spar-pos')?.value) || 30) / 100,
+        sparWidthRatio: (parseFloat(document.getElementById('input-wing-spar-w')?.value) || 20) / 100,
+        isFlatBottom: document.getElementById('check-wing-flat')?.checked !== false,
+        useMosaic: useMosaic,
+        marginSecurity: margin,
+        tabHeight: tabH > 0 ? tabH : 6
+      };
+      this.currentModelData = this.geometry.calculateWingStructure(wingParams);
+    } else if (this.activePhase === 'phase2') {
       const loftNoTabs = (document.getElementById('check-loft-no-tabs')?.checked === true) ||
                          (document.getElementById('check-no-tabs')?.checked === true);
       const loftTabH = loftNoTabs ? 0 : (parseFloat(document.getElementById('input-loft-tab-h')?.value) || 6);
