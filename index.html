@@ -313,15 +313,15 @@
         <div class="card-panel">
           <div style="display: flex; gap: 10px;">
             <div class="form-group" style="flex: 1;">
-              <label for="input-wing-le">Nariz (Semi-óvalo) <span class="unit">% C</span></label>
+              <label for="input-wing-le">Longitud Nariz <span class="unit">% C</span></label>
               <input type="number" id="input-wing-le" value="20" min="5" max="50">
             </div>
             <div class="form-group" style="flex: 1;">
-              <label for="input-wing-te">Cola (Triángulo) <span class="unit">% C</span></label>
-              <input type="number" id="input-wing-te" value="40" min="5" max="80">
+              <label for="input-wing-mid">Tramo Recto <span class="unit">% C</span></label>
+              <input type="number" id="input-wing-mid" value="40" min="10" max="80" title="Controla el ancho de la zona plana central">
             </div>
           </div>
-          <p style="font-size: 10px; color: var(--text-muted); margin-top: -4px;">El centro será un rectángulo recto.</p>
+          <p style="font-size: 10px; color: var(--text-muted); margin-top: -4px;">(La cola triangular será el porcentaje restante)</p>
           <label class="checkbox-row" style="margin-top: 10px;">
             <input type="checkbox" id="check-wing-flat" checked>
             <span>Fondo Plano (Base recta para pegar)</span>
@@ -333,20 +333,25 @@
         </div>
         <div class="card-panel">
           <div class="form-group">
-            <label for="input-wing-ribs">Cantidad de Cuadernas</label>
-            <input type="number" id="input-wing-ribs" value="5" min="2" max="20">
+            <label for="input-wing-ribs">Posiciones de las Cuadernas <span class="unit">Y MM</span></label>
+            <input type="text" id="input-wing-ribs" value="0, 75, 150, 225, 300" title="Distancias separadas por comas desde la raíz (0) hasta la punta.">
+            <p style="font-size: 10px; color: var(--text-muted); margin-top: 4px;">Pone una coma entre cada medida (ej. 0, 100, 200)</p>
           </div>
-          <div style="display: flex; gap: 10px;">
+          <label class="checkbox-row" style="margin-top: 10px; margin-bottom: 10px;">
+            <input type="checkbox" id="check-wing-spar-full" checked>
+            <span style="color: #FBBF24;">Cajón ocupa todo el Tramo Recto</span>
+          </label>
+          <div id="group-wing-spar-custom" style="display: none; gap: 10px;">
             <div class="form-group" style="flex: 1;">
-              <label for="input-wing-spar-pos">Posición X Cajón <span class="unit">% C</span></label>
+              <label for="input-wing-spar-pos">Posición X <span class="unit">% C</span></label>
               <input type="number" id="input-wing-spar-pos" value="30" min="5" max="80">
             </div>
             <div class="form-group" style="flex: 1;">
-              <label for="input-wing-spar-w">Ancho Cajón <span class="unit">% C</span></label>
+              <label for="input-wing-spar-w">Ancho <span class="unit">% C</span></label>
               <input type="number" id="input-wing-spar-w" value="20" min="5" max="50">
             </div>
           </div>
-          <div class="form-group">
+          <div class="form-group" style="margin-top: 8px;">
             <label for="input-wing-spar-h">Alto Cajón <span class="unit">% ESPESOR</span></label>
             <input type="number" id="input-wing-spar-h" value="80" min="10" max="100" title="Porcentaje del espesor de la cuaderna en ese punto">
           </div>

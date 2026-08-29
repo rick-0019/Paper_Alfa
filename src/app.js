@@ -102,17 +102,27 @@ class PaperAlfaApp {
       'input-tab-h', 'input-teeth', 'check-no-tabs', 'check-top-cap', 'check-bottom-cap', 'check-ruler', 'check-mosaic', 'check-centerline',
       'input-loft-tab-h', 'check-loft-no-tabs', 'check-loft-caps', 'check-loft-mosaic', 'check-loft-centerline',
       'input-wing-span', 'input-wing-root', 'input-wing-tip', 'input-wing-sweep', 'input-wing-thick', 
-      'input-wing-le', 'input-wing-te',
-      'input-wing-ribs', 'input-wing-spar-pos', 'input-wing-spar-w', 'input-wing-spar-h', 'check-wing-flat'
+      'input-wing-le', 'input-wing-mid',
+      'input-wing-ribs', 'input-wing-spar-pos', 'input-wing-spar-w', 'input-wing-spar-h', 'check-wing-flat', 'check-wing-spar-full'
     ];
     
     paramInputs.forEach(id => {
       const el = document.getElementById(id);
       if (el) {
         el.addEventListener('input', () => this.recalculateAndRender());
-        el.addEventListener('change', () => this.recalculateAndRender());
+        if (el.type === 'checkbox') {
+          el.addEventListener('change', () => this.recalculateAndRender());
+        }
       }
     });
+
+    const chkSparFull = document.getElementById('check-wing-spar-full');
+    if (chkSparFull) {
+      chkSparFull.addEventListener('change', (e) => {
+        const group = document.getElementById('group-wing-spar-custom');
+        if (group) group.style.display = e.target.checked ? 'none' : 'flex';
+      });
+    }
 
     // Sincronizar checkboxes de 'Sin Pestañas' entre Fase 1 y Fase 2
     const c1 = document.getElementById('check-no-tabs');
@@ -1450,17 +1460,34 @@ class PaperAlfaApp {
 
     // Ejecutar motor matemático según primitiva o fase
     if (this.activePhase === 'phase3') {
+      const leRatio = (parseFloat(document.getElementById('input-wing-le')?.value) || 20) / 100;
+      const midRatio = (parseFloat(document.getElementById('input-wing-mid')?.value) || 40) / 100;
+      const teRatio = 1.0 - leRatio - midRatio;
+      
+      const sparFull = document.getElementById('check-wing-spar-full')?.checked !== false;
+      const sparPosRatio = sparFull ? leRatio : (parseFloat(document.getElementById('input-wing-spar-pos')?.value) || 30) / 100;
+      const sparWidthRatio = sparFull ? midRatio : (parseFloat(document.getElementById('input-wing-spar-w')?.value) || 20) / 100;
+
+      let ribPositions = [0, 75, 150, 225, 300];
+      try {
+        const rawPos = document.getElementById('input-wing-ribs')?.value;
+        if (rawPos) {
+          ribPositions = rawPos.split(',').map(s => parseFloat(s.trim())).filter(n => !isNaN(n)).sort((a,b)=>a-b);
+          if (ribPositions.length === 0) ribPositions = [0, 150, 300];
+        }
+      } catch (e) {}
+
       const wingParams = {
         span: parseFloat(document.getElementById('input-wing-span')?.value) || 300,
         rootChord: parseFloat(document.getElementById('input-wing-root')?.value) || 150,
         tipChord: parseFloat(document.getElementById('input-wing-tip')?.value) || 100,
         sweep: parseFloat(document.getElementById('input-wing-sweep')?.value) || 0,
         thickness: parseFloat(document.getElementById('input-wing-thick')?.value) || 30,
-        leRatio: (parseFloat(document.getElementById('input-wing-le')?.value) || 20) / 100,
-        teRatio: (parseFloat(document.getElementById('input-wing-te')?.value) || 40) / 100,
-        ribCount: parseInt(document.getElementById('input-wing-ribs')?.value) || 5,
-        sparPosRatio: (parseFloat(document.getElementById('input-wing-spar-pos')?.value) || 30) / 100,
-        sparWidthRatio: (parseFloat(document.getElementById('input-wing-spar-w')?.value) || 20) / 100,
+        leRatio,
+        teRatio,
+        ribPositions,
+        sparPosRatio,
+        sparWidthRatio,
         sparHeightRatio: (parseFloat(document.getElementById('input-wing-spar-h')?.value) || 80) / 100,
         isFlatBottom: document.getElementById('check-wing-flat')?.checked !== false,
         useMosaic: useMosaic,

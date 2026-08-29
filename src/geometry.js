@@ -1551,7 +1551,7 @@ export class PaperAlfaGeometry {
    */
   
   calculateWingStructure(params) {
-    const { span, rootChord, tipChord, sweep, thickness, leRatio, teRatio, ribCount, sparPosRatio, sparWidthRatio, sparHeightRatio, isFlatBottom, tabHeight, useMosaic, marginSecurity } = params;
+    const { span, rootChord, tipChord, sweep, thickness, leRatio, teRatio, ribPositions, sparPosRatio, sparWidthRatio, sparHeightRatio, isFlatBottom, tabHeight, useMosaic, marginSecurity } = params;
     const parts = [];
     const margin = marginSecurity || 5;
     
@@ -1573,12 +1573,12 @@ export class PaperAlfaGeometry {
 
     const sparStartPct = Math.max(leRatio, sparPosRatio);
     const sparEndPct = Math.min(sparStartPct + sparWidthRatio, 1.0 - teRatio);
-    
-    const dy = span / (Math.max(ribCount - 1, 1));
 
     // 1. Ribs
+    const ribCount = ribPositions ? ribPositions.length : 0;
     for (let i = 0; i < ribCount; i++) {
-      const pct = ribCount > 1 ? i / (ribCount - 1) : 0;
+      const yPos = ribPositions[i];
+      const pct = Math.min(1, Math.max(0, yPos / span));
       const localChord = rootChord * (1 - pct) + tipChord * pct;
       const localThickRatio = thickness / rootChord; 
       
@@ -1636,7 +1636,7 @@ export class PaperAlfaGeometry {
       
       let ribPart = {
         id: `rib_${i+1}`,
-        name: `Cuaderna ${i+1}/${ribCount} (C=${Math.round(localChord)}mm)`,
+        name: `Cuaderna Y=${Math.round(yPos)}mm (C=${Math.round(localChord)}mm)`,
         width: rBox.width,
         height: rBox.height,
         lines: ribLines,
@@ -1781,7 +1781,7 @@ export class PaperAlfaGeometry {
       parameters: params,
       metrics: {
         spanMm: span + ' mm',
-        ribsCount: ribCount,
+        ribsCount: ribPositions.length,
         surfaceAreaCm2: 'N/A',
         fitsInSingleA4: layout.pageCount === 1 && !layout.overflow,
         pageCount: layout.pageCount
