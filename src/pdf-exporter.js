@@ -157,7 +157,8 @@ export class PaperAlfaPdfExporter {
           doc.setFont('helvetica', 'bold');
           doc.setFontSize(8);
           doc.setTextColor(60, 60, 60);
-          const labelPos = this.transformPoint(0, -part.height / 2 - 3, originX, originY, rot);
+          const h = part.height || (part.boundingBox ? part.boundingBox.height : 60);
+          const labelPos = this.transformPoint(0, -h / 2 - 3, originX, originY, rot);
           doc.text(part.name.toUpperCase(), labelPos.x - 10, labelPos.y);
         }
 
