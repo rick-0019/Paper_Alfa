@@ -1579,15 +1579,11 @@ export class PaperAlfaGeometry {
     // Cylinder: x^2 + z^2 = R^2
     // Wing ray: P0 = (0, y_p, z_p), Dir = (cos(ang), 0, sin(ang))
     // Desplazamos z_p con fillet.z
-    const getFilletIntersectionS = (y_p, z_p) => {
+    const _getRawFilletIntersectionS = (y_p, z_p) => {
       if (!fillet) return 0; // Si no hay fillet, arranca en 0 (corte recto)
       const angRad = fillet.ang * Math.PI / 180;
       const R = fillet.r;
       const dz = z_p + fillet.z;
-      // Ray equation: X = s*cosA, Z = dz + s*sinA
-      // (s*cosA)^2 + (dz + s*sinA)^2 = R^2
-      // s^2*cos^2 + dz^2 + 2*s*dz*sinA + s^2*sin^2 = R^2
-      // s^2 + 2*s*dz*sinA + (dz^2 - R^2) = 0
       const a = 1;
       const b = 2 * dz * Math.sin(angRad);
       const c = dz * dz - R * R;
@@ -1596,9 +1592,29 @@ export class PaperAlfaGeometry {
       
       const s1 = (-b + Math.sqrt(disc)) / (2 * a);
       const s2 = (-b - Math.sqrt(disc)) / (2 * a);
-      // Retornar la raíz positiva más grande
       const s = Math.max(s1, s2);
       return Math.max(0, s); // Asegurar que sea positivo
+    };
+
+    let globalMinS = Infinity;
+    if (fillet) {
+      for (let j = 0; j <= 80; j++) {
+         const xc = j / 80;
+         const x = xc * rootChord;
+         const yt = getThicknessProfile(xc, thickness / rootChord) * rootChord;
+         const yTop = isFlatBottom ? -(yt * 2) : -yt;
+         const yBot = isFlatBottom ? 0 : yt;
+         const s1 = _getRawFilletIntersectionS(x, yTop);
+         const s2 = _getRawFilletIntersectionS(x, yBot);
+         if (s1 < globalMinS) globalMinS = s1;
+         if (s2 < globalMinS) globalMinS = s2;
+      }
+    } else {
+      globalMinS = 0;
+    }
+
+    const getFilletIntersectionS = (y_p, z_p) => {
+      return fillet ? _getRawFilletIntersectionS(y_p, z_p) - globalMinS : 0;
     };
 
     // 1. Ribs
@@ -1790,6 +1806,7 @@ export class PaperAlfaGeometry {
         prevXTop = x; prevYTop = yTop;
         prevXBot = x; prevYBot = yBot;
       }
+
       return { leLen, teTopLen, teBotLen, sTop, sBot, sX1, sX2, chord };
     };
 
