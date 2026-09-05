@@ -360,6 +360,32 @@
             <input type="number" id="input-wing-spar-h" value="80" min="10" max="100" title="Porcentaje del espesor de la cuaderna en ese punto">
           </div>
         </div>
+
+        <div class="section-title">
+          <span>04 // Encastre a Fuselaje (Raíz Curva)</span>
+        </div>
+        <div class="card-panel">
+          <label class="checkbox-row" style="margin-bottom: 10px;">
+            <input type="checkbox" id="check-wing-fillet">
+            <span style="color: #60A5FA;">Recortar raíz para encastrar en tubo</span>
+          </label>
+          <div id="group-wing-fillet" style="display: none; flex-direction: column; gap: 10px;">
+            <div style="display: flex; gap: 10px;">
+              <div class="form-group" style="flex: 1;">
+                <label for="input-wing-fillet-r">Radio Fuselaje <span class="unit">MM</span></label>
+                <input type="number" id="input-wing-fillet-r" value="120" min="10">
+              </div>
+              <div class="form-group" style="flex: 1;">
+                <label for="input-wing-fillet-ang">Ángulo (Anédro) <span class="unit">°</span></label>
+                <input type="number" id="input-wing-fillet-ang" value="-23" title="Positivo hacia arriba (Diédro), Negativo hacia abajo (Anédro)">
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="input-wing-fillet-z">Offset Z (Vertical) <span class="unit">MM</span></label>
+              <input type="number" id="input-wing-fillet-z" value="-50" title="Distancia desde el centro del tubo hacia abajo">
+            </div>
+          </div>
+        </div>
       </div>
     </aside>
 

@@ -1550,8 +1550,9 @@ export class PaperAlfaGeometry {
    * @param {Object} params
    */
   
+  
   calculateWingStructure(params) {
-    const { span, rootChord, tipChord, sweep, thickness, leRatio, teRatio, ribPositions, sparPosRatio, sparWidthRatio, sparHeightRatio, isFlatBottom, tabHeight, useMosaic, marginSecurity } = params;
+    const { span, rootChord, tipChord, sweep, thickness, leRatio, teRatio, ribPositions, sparPosRatio, sparWidthRatio, sparHeightRatio, isFlatBottom, tabHeight, useMosaic, marginSecurity, fillet } = params;
     const parts = [];
     const margin = marginSecurity || 5;
     
@@ -1573,6 +1574,32 @@ export class PaperAlfaGeometry {
 
     const sparStartPct = Math.max(leRatio, sparPosRatio);
     const sparEndPct = Math.min(sparStartPct + sparWidthRatio, 1.0 - teRatio);
+
+    // Función de intersección (ray-casting contra cilindro Y)
+    // Cylinder: x^2 + z^2 = R^2
+    // Wing ray: P0 = (0, y_p, z_p), Dir = (cos(ang), 0, sin(ang))
+    // Desplazamos z_p con fillet.z
+    const getFilletIntersectionS = (y_p, z_p) => {
+      if (!fillet) return 0; // Si no hay fillet, arranca en 0 (corte recto)
+      const angRad = fillet.ang * Math.PI / 180;
+      const R = fillet.r;
+      const dz = z_p + fillet.z;
+      // Ray equation: X = s*cosA, Z = dz + s*sinA
+      // (s*cosA)^2 + (dz + s*sinA)^2 = R^2
+      // s^2*cos^2 + dz^2 + 2*s*dz*sinA + s^2*sin^2 = R^2
+      // s^2 + 2*s*dz*sinA + (dz^2 - R^2) = 0
+      const a = 1;
+      const b = 2 * dz * Math.sin(angRad);
+      const c = dz * dz - R * R;
+      const disc = b * b - 4 * a * c;
+      if (disc < 0) return 0; // No interseca, asumimos 0
+      
+      const s1 = (-b + Math.sqrt(disc)) / (2 * a);
+      const s2 = (-b - Math.sqrt(disc)) / (2 * a);
+      // Retornar la raíz positiva más grande
+      const s = Math.max(s1, s2);
+      return Math.max(0, s); // Asegurar que sea positivo
+    };
 
     // 1. Ribs
     const ribCount = ribPositions ? ribPositions.length : 0;
@@ -1655,9 +1682,15 @@ export class PaperAlfaGeometry {
       let sYBot = isFlatBottom ? 0 : getThick(sparStartPct);
       const maxBoxH = Math.abs(sYTop - sYBot);
       const boxH = maxBoxH * sparHeightRatio;
+      
+      const sRootTop = getFilletIntersectionS(sX1, sYTop + (maxBoxH - boxH) / 2);
+      const sRootBot = getFilletIntersectionS(sX1, sYBot - (maxBoxH - boxH) / 2);
+      
       return { 
         w: sX2 - sX1, 
-        h: boxH 
+        h: boxH,
+        sRootTop,
+        sRootBot
       };
     };
     
@@ -1669,32 +1702,43 @@ export class PaperAlfaGeometry {
     let curXTip = 0;
     const faces = [rootSpar.w, rootSpar.h, rootSpar.w, rootSpar.h];
     const facesTip = [tipSpar.w, tipSpar.h, tipSpar.w, tipSpar.h];
-    const sparPtsRoot = [{x: 0, y: 0}];
+    // Root offsets for each vertex of the box
+    // V1: Top-Left, V2: Top-Right, V3: Bot-Right, V4: Bot-Left
+    const sOffsets = [rootSpar.sRootTop, rootSpar.sRootTop, rootSpar.sRootBot, rootSpar.sRootBot, rootSpar.sRootTop];
+    
+    const sparPtsRoot = [{x: 0, y: sOffsets[0]}];
     const sparPtsTip = [{x: sweep, y: span}];
     
     for (let i = 0; i < 4; i++) {
       curXRoot += faces[i];
       curXTip += facesTip[i];
-      sparPtsRoot.push({ x: curXRoot, y: 0 });
+      sparPtsRoot.push({ x: curXRoot, y: sOffsets[i+1] });
       sparPtsTip.push({ x: sweep + curXTip, y: span });
     }
     
     for (let i = 0; i < 5; i++) {
       if (i > 0 && i < 4) {
-        sparLines.mountainFolds.push({ x1: sparPtsRoot[i].x, y1: 0, x2: sparPtsTip[i].x, y2: span, type: 'mountain' });
+        sparLines.mountainFolds.push({ x1: sparPtsRoot[i].x, y1: sparPtsRoot[i].y, x2: sparPtsTip[i].x, y2: span, type: 'mountain' });
       } else {
-        sparLines.cuts.push({ x1: sparPtsRoot[i].x, y1: 0, x2: sparPtsTip[i].x, y2: span, type: 'cut' });
+        sparLines.cuts.push({ x1: sparPtsRoot[i].x, y1: sparPtsRoot[i].y, x2: sparPtsTip[i].x, y2: span, type: 'cut' });
       }
     }
-    sparLines.cuts.push({ x1: 0, y1: 0, x2: curXRoot, y2: 0, type: 'cut' });
-    sparLines.cuts.push({ x1: sweep, y1: span, x2: sweep + curXTip, y2: span, type: 'cut' });
+    
+    // Conectar vértices de la raíz (puede ser inclinado por el fillet)
+    for (let i = 0; i < 4; i++) {
+      sparLines.cuts.push({ x1: sparPtsRoot[i].x, y1: sparPtsRoot[i].y, x2: sparPtsRoot[i+1].x, y2: sparPtsRoot[i+1].y, type: 'cut' });
+    }
+    sparLines.cuts.push({ x1: 0, y1: span, x2: sweep + curXTip, y2: span, type: 'cut' });
     
     if (tabHeight > 0) {
-      sparLines.cuts.push({ x1: curXRoot, y1: 0, x2: curXRoot + tabHeight, y2: tabHeight, type: 'cut' });
-      sparLines.cuts.push({ x1: curXRoot + tabHeight, y1: tabHeight, x2: sweep + curXTip + tabHeight, y2: span - tabHeight, type: 'cut' });
+      sparLines.cuts.push({ x1: curXRoot, y1: sparPtsRoot[4].y, x2: curXRoot + tabHeight, y2: sparPtsRoot[4].y + tabHeight, type: 'cut' });
+      sparLines.cuts.push({ x1: curXRoot + tabHeight, y1: sparPtsRoot[4].y + tabHeight, x2: sweep + curXTip + tabHeight, y2: span - tabHeight, type: 'cut' });
       sparLines.cuts.push({ x1: sweep + curXTip + tabHeight, y2: span - tabHeight, x2: sweep + curXTip, y2: span, type: 'cut' });
-      sparLines.mountainFolds.push({ x1: curXRoot, y1: 0, x2: sweep + curXTip, y2: span, type: 'mountain' });
+      sparLines.mountainFolds.push({ x1: curXRoot, y1: sparPtsRoot[4].y, x2: sweep + curXTip, y2: span, type: 'mountain' });
     }
+    
+    // Obtener Max Y para bounding box de la raíz
+    const maxRootOffset = Math.max(...sOffsets);
     
     let sparPart = {
       id: 'spar_box',
@@ -1707,12 +1751,16 @@ export class PaperAlfaGeometry {
     // 3. Skins
     const calcSkinLengths = (chord, thicknessRatio) => {
       let leLen = 0, teTopLen = 0, teBotLen = 0;
-      const numPts = 60;
+      const numPts = 80;
       const sX1 = sparStartPct * chord;
       const sX2 = sparEndPct * chord;
       
       let prevXTop = 0, prevYTop = isFlatBottom ? 0 : 0;
       let prevXBot = 0, prevYBot = 0;
+      
+      // Para Fillet: Arrays paralelos de S-offset
+      const sTop = [];
+      const sBot = [];
       
       for (let j = 0; j <= numPts; j++) {
         const xc = j / numPts;
@@ -1720,6 +1768,9 @@ export class PaperAlfaGeometry {
         const yt = getThicknessProfile(xc, thicknessRatio) * chord;
         const yTop = isFlatBottom ? -(yt * 2) : -yt;
         const yBot = isFlatBottom ? 0 : yt;
+        
+        sTop.push(getFilletIntersectionS(x, yTop));
+        sBot.push(getFilletIntersectionS(x, yBot));
         
         if (j > 0) {
           const dTop = Math.sqrt(Math.pow(x - prevXTop, 2) + Math.pow(yTop - prevYTop, 2));
@@ -1735,34 +1786,155 @@ export class PaperAlfaGeometry {
         prevXTop = x; prevYTop = yTop;
         prevXBot = x; prevYBot = yBot;
       }
-      return { leLen, teTopLen, teBotLen };
+      return { leLen, teTopLen, teBotLen, sTop, sBot, sX1, sX2, chord };
     };
 
-    const genSkin = (id, name, rootW1, rootW2, tipW1, tipW2) => {
+    const genSkinFillet = (id, name, rootData, tipData, partType) => {
       const lns = { cuts: [], mountainFolds: [], valleyFolds: [], tabs: [] };
+      const { leLen, teTopLen, teBotLen, sTop, sBot, sX1, sX2, chord } = rootData;
+      
+      let rootW1, rootW2, tipW1, tipW2;
+      let isLE = partType === 'LE';
+      
+      if (isLE) {
+        rootW1 = leLen/2; rootW2 = leLen/2;
+        tipW1 = tipData.leLen/2; tipW2 = tipData.leLen/2;
+      } else {
+        rootW1 = teTopLen; rootW2 = teBotLen;
+        tipW1 = tipData.teTopLen; tipW2 = tipData.teBotLen;
+      }
+      
       const rW = rootW1 + rootW2;
       const tW = tipW1 + tipW2;
       
-      lns.cuts.push({ x1: 0, y1: 0, x2: rW, y2: 0, type: 'cut' });
+      // Dibujar borde curvo del encastre (raíz) iterando sobre los segmentos
+      const numPts = sTop.length - 1;
+      let currentArcLen = 0;
+      let prevArcLen = 0;
+      let prevXTop = 0, prevYTop = isFlatBottom ? 0 : 0;
+      let prevXBot = 0, prevYBot = 0;
+      let prevS = null;
+      let currentS = null;
+      
+      // Dependiendo de si es LE o TE, el mapeo del arco a X varía.
+      // Para LE: va desde S_X1 (Top) hasta Nariz (Top), cruza nariz, va Nariz (Bot) hasta S_X1 (Bot).
+      
+      let maxS = 0;
+      
+      if (isLE) {
+         // LE: Mapear desde sX1_top (X=rW) hasta sX1_bot (X=0)
+         let currentX = rW;
+         for (let j = numPts; j >= 0; j--) {
+            const x = (j/numPts)*chord;
+            if (x <= sX1) {
+               const yt = getThicknessProfile(j/numPts, thickness/rootChord) * chord;
+               const yTop = isFlatBottom ? -(yt*2) : -yt;
+               if (prevS !== null) {
+                 const dx = x - prevXTop;
+                 const dy = yTop - prevYTop;
+                 const ds = Math.sqrt(dx*dx + dy*dy);
+                 currentX -= ds;
+                 lns.cuts.push({x1: currentX + ds, y1: prevS, x2: currentX, y2: sTop[j], type: 'cut'});
+                 maxS = Math.max(maxS, sTop[j]);
+               }
+               prevS = sTop[j]; prevXTop = x; prevYTop = yTop;
+            }
+         }
+         for (let j = 0; j <= numPts; j++) {
+            const x = (j/numPts)*chord;
+            if (x <= sX1) {
+               const yt = getThicknessProfile(j/numPts, thickness/rootChord) * chord;
+               const yBot = isFlatBottom ? 0 : yt;
+               if (j > 0) {
+                 const dx = x - prevXBot;
+                 const dy = yBot - prevYBot;
+                 const ds = Math.sqrt(dx*dx + dy*dy);
+                 currentX -= ds;
+                 lns.cuts.push({x1: currentX + ds, y1: prevS, x2: currentX, y2: sBot[j], type: 'cut'});
+                 maxS = Math.max(maxS, sBot[j]);
+               } else {
+                 // Conectar nariz top con nariz bot
+                 const dx = 0; // x is 0 for both
+                 const dy = yBot - prevYTop;
+                 const ds = Math.sqrt(dx*dx + dy*dy);
+                 currentX -= ds;
+                 lns.cuts.push({x1: currentX + ds, y1: prevS, x2: currentX, y2: sBot[j], type: 'cut'});
+                 maxS = Math.max(maxS, sBot[j]);
+               }
+               prevS = sBot[j]; prevXBot = x; prevYBot = yBot;
+            }
+         }
+         // Si dibujamos pestañas de encastre en la raíz
+         if (fillet) {
+            // Un par de pestañas triangulares genéricas a lo largo del borde curvo
+            // Omitido para no complicar en exceso, la curva ya da el corte.
+         }
+      } else {
+         // TE: Mapear desde sX2_top (X=0) hasta Cola (Top), luego Cola (Bot) hasta sX2_bot (X=rW)
+         let currentX = 0;
+         for (let j = 0; j <= numPts; j++) {
+            const x = (j/numPts)*chord;
+            if (x >= sX2) {
+               const yt = getThicknessProfile(j/numPts, thickness/rootChord) * chord;
+               const yTop = isFlatBottom ? -(yt*2) : -yt;
+               if (prevS !== null) {
+                 const dx = x - prevXTop;
+                 const dy = yTop - prevYTop;
+                 const ds = Math.sqrt(dx*dx + dy*dy);
+                 currentX += ds;
+                 lns.cuts.push({x1: currentX - ds, y1: prevS, x2: currentX, y2: sTop[j], type: 'cut'});
+                 maxS = Math.max(maxS, sTop[j]);
+               } else {
+                 prevS = sTop[j]; prevXTop = x; prevYTop = yTop;
+                 maxS = Math.max(maxS, prevS);
+               }
+               prevS = sTop[j]; prevXTop = x; prevYTop = yTop;
+            }
+         }
+         prevS = sBot[numPts];
+         for (let j = numPts; j >= 0; j--) {
+            const x = (j/numPts)*chord;
+            if (x >= sX2) {
+               const yt = getThicknessProfile(j/numPts, thickness/rootChord) * chord;
+               const yBot = isFlatBottom ? 0 : yt;
+               if (j < numPts) {
+                 const dx = x - prevXBot;
+                 const dy = yBot - prevYBot;
+                 const ds = Math.sqrt(dx*dx + dy*dy);
+                 currentX += ds;
+                 lns.cuts.push({x1: currentX - ds, y1: prevS, x2: currentX, y2: sBot[j], type: 'cut'});
+                 maxS = Math.max(maxS, sBot[j]);
+               }
+               prevS = sBot[j]; prevXBot = x; prevYBot = yBot;
+            }
+         }
+      }
+      
+      const sRootLeft = isLE ? sBot[0] : sTop[0]; // Simplificación para los bordes laterales
+      const sRootRight = isLE ? sTop[numPts] : sBot[numPts];
+      
+      // Dibujar el resto (Punta recta)
       lns.cuts.push({ x1: sweep, y1: span, x2: sweep + tW, y2: span, type: 'cut' });
-      lns.cuts.push({ x1: 0, y1: 0, x2: sweep, y2: span, type: 'cut' });
+      // Side connections
+      lns.cuts.push({ x1: 0, y1: (isLE ? sBot[sBot.length-1] : sTop[sTop.length-1] || 0), x2: sweep, y2: span, type: 'cut' });
       
       if (tabHeight > 0) {
-        lns.mountainFolds.push({ x1: rW, y1: 0, x2: sweep + tW, y2: span, type: 'mountain' });
-        lns.cuts.push({ x1: rW, y1: 0, x2: rW+tabHeight, y2: tabHeight, type: 'cut' });
-        lns.cuts.push({ x1: rW+tabHeight, y1: tabHeight, x2: sweep+tW+tabHeight, y2: span-tabHeight, type: 'cut' });
+        lns.mountainFolds.push({ x1: rW, y1: (isLE ? sTop[sTop.length-1] : sBot[0] || 0), x2: sweep + tW, y2: span, type: 'mountain' });
+        lns.cuts.push({ x1: rW, y1: (isLE ? sTop[sTop.length-1] : sBot[0] || 0), x2: rW+tabHeight, y2: (isLE ? sTop[sTop.length-1] : sBot[0] || 0)+tabHeight, type: 'cut' });
+        lns.cuts.push({ x1: rW+tabHeight, y1: (isLE ? sTop[sTop.length-1] : sBot[0] || 0)+tabHeight, x2: sweep+tW+tabHeight, y2: span-tabHeight, type: 'cut' });
         lns.cuts.push({ x1: sweep+tW+tabHeight, y1: span-tabHeight, x2: sweep+tW, y2: span, type: 'cut' });
       } else {
-        lns.cuts.push({ x1: rW, y1: 0, x2: sweep + tW, y2: span, type: 'cut' });
+        lns.cuts.push({ x1: rW, y1: (isLE ? sTop[sTop.length-1] : sBot[0] || 0), x2: sweep + tW, y2: span, type: 'cut' });
       }
       
       if (rootW2 > 0 || tipW2 > 0) {
-        lns.mountainFolds.push({ x1: rootW1, y1: 0, x2: sweep + tipW1, y2: span, type: 'mountain' });
+        // Fold line down the middle
+        lns.mountainFolds.push({ x1: rootW1, y1: (isLE ? sTop[0] : sTop[sTop.length-1] || 0), x2: sweep + tipW1, y2: span, type: 'mountain' });
       }
       
       let part = {
         id,
-        name,
+        name: name + (fillet ? ' (Corte Raíz)' : ''),
         boundingBox: { minX: 0, maxX: Math.max(rW, sweep + tW) + tabHeight, minY: 0, maxY: span, width: Math.max(rW, sweep + tW) + tabHeight, height: span },
         lines: lns
       };
@@ -1772,8 +1944,8 @@ export class PaperAlfaGeometry {
     const rootSkins = calcSkinLengths(rootChord, thickness / rootChord);
     const tipSkins = calcSkinLengths(tipChord, thickness / rootChord);
     
-    parts.push(genSkin('skin_le', 'Piel Borde de Ataque', rootSkins.leLen/2, rootSkins.leLen/2, tipSkins.leLen/2, tipSkins.leLen/2));
-    parts.push(genSkin('skin_te', 'Piel Borde de Fuga', rootSkins.teTopLen, rootSkins.teBotLen, tipSkins.teTopLen, tipSkins.teBotLen));
+    parts.push(genSkinFillet('skin_le', 'Piel Borde de Ataque', rootSkins, tipSkins, 'LE'));
+    parts.push(genSkinFillet('skin_te', 'Piel Borde de Fuga', rootSkins, tipSkins, 'TE'));
 
     const layout = this.layoutPartsOnA4(parts, margin, useMosaic);
     return {

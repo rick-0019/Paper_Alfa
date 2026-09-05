@@ -103,7 +103,8 @@ class PaperAlfaApp {
       'input-loft-tab-h', 'check-loft-no-tabs', 'check-loft-caps', 'check-loft-mosaic', 'check-loft-centerline',
       'input-wing-span', 'input-wing-root', 'input-wing-tip', 'input-wing-sweep', 'input-wing-thick', 
       'input-wing-le', 'input-wing-mid', 'input-wing-te',
-      'input-wing-ribs', 'input-wing-spar-pos', 'input-wing-spar-w', 'input-wing-spar-h', 'check-wing-flat', 'check-wing-spar-full'
+      'input-wing-ribs', 'input-wing-spar-pos', 'input-wing-spar-w', 'input-wing-spar-h', 'check-wing-flat', 'check-wing-spar-full',
+      'check-wing-fillet', 'input-wing-fillet-r', 'input-wing-fillet-ang', 'input-wing-fillet-z'
     ];
     
     paramInputs.forEach(id => {
@@ -121,6 +122,14 @@ class PaperAlfaApp {
       chkSparFull.addEventListener('change', (e) => {
         const group = document.getElementById('group-wing-spar-custom');
         if (group) group.style.display = e.target.checked ? 'none' : 'flex';
+      });
+    }
+
+    const chkFillet = document.getElementById('check-wing-fillet');
+    if (chkFillet) {
+      chkFillet.addEventListener('change', (e) => {
+        const group = document.getElementById('group-wing-fillet');
+        if (group) group.style.display = e.target.checked ? 'flex' : 'none';
       });
     }
 
@@ -1473,6 +1482,11 @@ class PaperAlfaApp {
       const sparPosRatio = sparFull ? leRatio : (parseFloat(document.getElementById('input-wing-spar-pos')?.value) || 30) / 100;
       const sparWidthRatio = sparFull ? midRatio : (parseFloat(document.getElementById('input-wing-spar-w')?.value) || 20) / 100;
 
+      const applyFillet = document.getElementById('check-wing-fillet')?.checked === true;
+      const filletR = parseFloat(document.getElementById('input-wing-fillet-r')?.value) || 120;
+      const filletAng = parseFloat(document.getElementById('input-wing-fillet-ang')?.value) || -23;
+      const filletZ = parseFloat(document.getElementById('input-wing-fillet-z')?.value) || -50;
+
       let ribPositions = [0, 75, 150, 225, 300];
       try {
         const rawPos = document.getElementById('input-wing-ribs')?.value;
@@ -1497,7 +1511,8 @@ class PaperAlfaApp {
         isFlatBottom: document.getElementById('check-wing-flat')?.checked !== false,
         useMosaic: useMosaic,
         marginSecurity: margin,
-        tabHeight: tabH > 0 ? tabH : 6
+        tabHeight: tabH > 0 ? tabH : 6,
+        fillet: applyFillet ? { r: filletR, ang: filletAng, z: filletZ } : null
       };
       this.currentModelData = this.geometry.calculateWingStructure(wingParams);
     } else if (this.activePhase === 'phase2') {
