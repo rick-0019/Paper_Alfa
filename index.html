@@ -338,15 +338,20 @@
           <span>03 // Estructura (Cajón y Cuadernas)</span>
         </div>
         <div class="card-panel">
-          <div class="form-group">
-            <label for="input-wing-ribs">Posiciones de las Cuadernas <span class="unit">Y MM</span></label>
-            <input type="text" id="input-wing-ribs" value="0, 75, 150, 225, 300" title="Distancias separadas por comas desde la raíz (0) hasta la punta.">
-            <p style="font-size: 10px; color: var(--text-muted); margin-top: 4px;">Pone una coma entre cada medida (ej. 0, 100, 200)</p>
-          </div>
-          <label class="checkbox-row" style="margin-top: 10px; margin-bottom: 10px;">
-            <input type="checkbox" id="check-wing-spar-full" checked>
-            <span style="color: #FBBF24;">Cajón ocupa todo el Tramo Recto</span>
+          <label class="checkbox-row" style="margin-bottom: 10px;">
+            <input type="checkbox" id="check-wing-spar-enable" checked>
+            <span style="color: #60A5FA;">Generar Cajón Estructural</span>
           </label>
+          <div id="group-wing-spar-main" style="display: flex; flex-direction: column;">
+            <div class="form-group">
+              <label for="input-wing-ribs">Posiciones de las Cuadernas <span class="unit">Y MM</span></label>
+              <input type="text" id="input-wing-ribs" value="0, 75, 150, 225, 300" title="Distancias separadas por comas desde la raíz (0) hasta la punta.">
+              <p style="font-size: 10px; color: var(--text-muted); margin-top: 4px;">Pone una coma entre cada medida (ej. 0, 100, 200)</p>
+            </div>
+            <label class="checkbox-row" style="margin-top: 10px; margin-bottom: 10px;">
+              <input type="checkbox" id="check-wing-spar-full" checked>
+              <span style="color: #FBBF24;">Cajón ocupa todo el Tramo Recto</span>
+            </label>
           <div id="group-wing-spar-custom" style="display: none; gap: 10px;">
             <div class="form-group" style="flex: 1;">
               <label for="input-wing-spar-pos">Posición X <span class="unit">% C</span></label>
@@ -360,6 +365,7 @@
           <div class="form-group" style="margin-top: 8px;">
             <label for="input-wing-spar-h">Alto Cajón <span class="unit">% ESPESOR</span></label>
             <input type="number" id="input-wing-spar-h" value="80" min="10" max="100" title="Porcentaje del espesor de la cuaderna en ese punto">
+          </div>
           </div>
         </div>
 

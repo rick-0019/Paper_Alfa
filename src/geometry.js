@@ -1552,7 +1552,7 @@ export class PaperAlfaGeometry {
   
   
   calculateWingStructure(params) {
-    const { span, rootChord, tipChord, sweep, thickness, leRatio, teRatio, ribPositions, sparPosRatio, sparWidthRatio, sparHeightRatio, isFlatBottom, tabHeight, useMosaic, marginSecurity, fillet } = params;
+    const { span, rootChord, tipChord, sweep, thickness, leRatio, teRatio, ribPositions, sparEnable, sparPosRatio, sparWidthRatio, sparHeightRatio, isFlatBottom, tabHeight, useMosaic, marginSecurity, fillet } = params;
     const parts = [];
     const margin = marginSecurity || 5;
     
@@ -1649,13 +1649,15 @@ export class PaperAlfaGeometry {
       }
       ribLines.cuts.push({ x1: pts[pts.length-1].x, y1: pts[pts.length-1].y, x2: pts[0].x, y2: pts[0].y, type: 'cut' });
       
-      ribLines.cuts.push({ x1: boxLeft, y1: boxTop, x2: boxRight, y2: boxTop, type: 'cut' });
-      ribLines.cuts.push({ x1: boxRight, y1: boxTop, x2: boxRight, y2: boxBot, type: 'cut' });
-      ribLines.cuts.push({ x1: boxRight, y1: boxBot, x2: boxLeft, y2: boxBot, type: 'cut' });
-      ribLines.cuts.push({ x1: boxLeft, y1: boxBot, x2: boxLeft, y2: boxTop, type: 'cut' });
-      
-      ribLines.markings.push({ x1: (boxLeft+boxRight)/2 - 5, y1: (boxTop+boxBot)/2, x2: (boxLeft+boxRight)/2 + 5, y2: (boxTop+boxBot)/2, type: 'centroid-x' });
-      ribLines.markings.push({ x1: (boxLeft+boxRight)/2, y1: (boxTop+boxBot)/2 - 5, x2: (boxLeft+boxRight)/2, y2: (boxTop+boxBot)/2 + 5, type: 'centroid-x' });
+      if (sparEnable !== false) {
+        ribLines.cuts.push({ x1: boxLeft, y1: boxTop, x2: boxRight, y2: boxTop, type: 'cut' });
+        ribLines.cuts.push({ x1: boxRight, y1: boxTop, x2: boxRight, y2: boxBot, type: 'cut' });
+        ribLines.cuts.push({ x1: boxRight, y1: boxBot, x2: boxLeft, y2: boxBot, type: 'cut' });
+        ribLines.cuts.push({ x1: boxLeft, y1: boxBot, x2: boxLeft, y2: boxTop, type: 'cut' });
+        
+        ribLines.markings.push({ x1: (boxLeft+boxRight)/2 - 5, y1: (boxTop+boxBot)/2, x2: (boxLeft+boxRight)/2 + 5, y2: (boxTop+boxBot)/2, type: 'centroid-x' });
+        ribLines.markings.push({ x1: (boxLeft+boxRight)/2, y1: (boxTop+boxBot)/2 - 5, x2: (boxLeft+boxRight)/2, y2: (boxTop+boxBot)/2 + 5, type: 'centroid-x' });
+      }
       
       let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
       pts.forEach(p => { minX=Math.min(minX, p.x); maxX=Math.max(maxX, p.x); minY=Math.min(minY, p.y); maxY=Math.max(maxY, p.y); });
@@ -1746,7 +1748,9 @@ export class PaperAlfaGeometry {
       boundingBox: { minX: 0, maxX: Math.max(curXRoot, sweep + curXTip) + tabHeight, minY: 0, maxY: span, width: Math.max(curXRoot, sweep + curXTip) + tabHeight, height: span },
       lines: sparLines
     };
-    parts.push(this.centerPieceGeometry(sparPart));
+    if (sparEnable !== false) {
+      parts.push(this.centerPieceGeometry(sparPart));
+    }
     
     // 3. Skins
     const calcSkinLengths = (chord, thicknessRatio) => {

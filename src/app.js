@@ -103,7 +103,7 @@ class PaperAlfaApp {
       'input-loft-tab-h', 'check-loft-no-tabs', 'check-loft-caps', 'check-loft-mosaic', 'check-loft-centerline',
       'input-wing-span', 'input-wing-root', 'input-wing-tip', 'input-wing-sweep', 'input-wing-thick', 
       'input-wing-le', 'input-wing-mid', 'input-wing-te',
-      'input-wing-ribs', 'input-wing-spar-pos', 'input-wing-spar-w', 'input-wing-spar-h', 'check-wing-flat', 'check-wing-spar-full',
+      'input-wing-ribs', 'input-wing-spar-pos', 'input-wing-spar-w', 'input-wing-spar-h', 'check-wing-flat', 'check-wing-spar-full', 'check-wing-spar-enable',
       'check-wing-fillet', 'input-wing-fillet-r', 'input-wing-fillet-ang', 'input-wing-fillet-z'
     ];
     
@@ -129,6 +129,14 @@ class PaperAlfaApp {
     if (chkFillet) {
       chkFillet.addEventListener('change', (e) => {
         const group = document.getElementById('group-wing-fillet');
+        if (group) group.style.display = e.target.checked ? 'flex' : 'none';
+      });
+    }
+
+    const chkSparEnable = document.getElementById('check-wing-spar-enable');
+    if (chkSparEnable) {
+      chkSparEnable.addEventListener('change', (e) => {
+        const group = document.getElementById('group-wing-spar-main');
         if (group) group.style.display = e.target.checked ? 'flex' : 'none';
       });
     }
@@ -1500,6 +1508,8 @@ class PaperAlfaApp {
         }
       } catch (e) {}
 
+      const sparEnable = document.getElementById('check-wing-spar-enable')?.checked !== false;
+
       const wingParams = {
         span: parseFloat(document.getElementById('input-wing-span')?.value) || 300,
         rootChord: rootChord,
@@ -1509,6 +1519,7 @@ class PaperAlfaApp {
         leRatio,
         teRatio,
         ribPositions,
+        sparEnable,
         sparPosRatio,
         sparWidthRatio,
         sparHeightRatio: (parseFloat(document.getElementById('input-wing-spar-h')?.value) || 80) / 100,
