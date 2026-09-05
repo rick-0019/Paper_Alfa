@@ -1469,14 +1469,18 @@ class PaperAlfaApp {
 
     // Ejecutar motor matemático según primitiva o fase
     if (this.activePhase === 'phase3') {
-      let rawLe = parseFloat(document.getElementById('input-wing-le')?.value) || 20;
-      let rawMid = parseFloat(document.getElementById('input-wing-mid')?.value) || 40;
-      let rawTe = parseFloat(document.getElementById('input-wing-te')?.value) || 40;
+      let rawLe = parseFloat(document.getElementById('input-wing-le')?.value) || 30;
+      let rawMid = parseFloat(document.getElementById('input-wing-mid')?.value) || 70;
+      let rawTe = parseFloat(document.getElementById('input-wing-te')?.value) || 50;
       
-      const sum = rawLe + rawMid + rawTe;
-      const leRatio = (rawLe / sum);
-      const midRatio = (rawMid / sum);
-      const teRatio = (rawTe / sum);
+      const rootChord = rawLe + rawMid + rawTe;
+      
+      const lblRoot = document.getElementById('lbl-wing-root-total');
+      if (lblRoot) lblRoot.innerText = rootChord;
+
+      const leRatio = (rawLe / rootChord);
+      const midRatio = (rawMid / rootChord);
+      const teRatio = (rawTe / rootChord);
       
       const sparFull = document.getElementById('check-wing-spar-full')?.checked !== false;
       const sparPosRatio = sparFull ? leRatio : (parseFloat(document.getElementById('input-wing-spar-pos')?.value) || 30) / 100;
@@ -1498,7 +1502,7 @@ class PaperAlfaApp {
 
       const wingParams = {
         span: parseFloat(document.getElementById('input-wing-span')?.value) || 300,
-        rootChord: parseFloat(document.getElementById('input-wing-root')?.value) || 150,
+        rootChord: rootChord,
         tipChord: parseFloat(document.getElementById('input-wing-tip')?.value) || 100,
         sweep: parseFloat(document.getElementById('input-wing-sweep')?.value) || 0,
         thickness: parseFloat(document.getElementById('input-wing-thick')?.value) || 30,

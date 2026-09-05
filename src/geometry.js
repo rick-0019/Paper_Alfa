@@ -1566,7 +1566,7 @@ export class PaperAlfaGeometry {
       } else if (xRatio >= 1.0 - teRatio) {
         if (teRatio <= 0) return t;
         const normX = (xRatio - (1.0 - teRatio)) / teRatio;
-        return t * (1.0 - normX);
+        return t * (1.0 - normX * normX); // Curva parabólica suave en vez de recta
       } else {
         return t;
       }

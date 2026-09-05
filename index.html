@@ -293,39 +293,41 @@
           </div>
           <div style="display: flex; gap: 10px;">
             <div class="form-group" style="flex: 1;">
-              <label for="input-wing-root">Cuerda Raíz <span class="unit">MM</span></label>
-              <input type="number" id="input-wing-root" value="150" min="20">
-            </div>
-            <div class="form-group" style="flex: 1;">
               <label for="input-wing-tip">Cuerda Punta <span class="unit">MM</span></label>
               <input type="number" id="input-wing-tip" value="100" min="10">
             </div>
+            <div class="form-group" style="flex: 1;">
+              <label for="input-wing-thick">Espesor Raíz <span class="unit">MM</span></label>
+              <input type="number" id="input-wing-thick" value="30" min="5">
+            </div>
           </div>
           <div class="form-group">
-            <label for="input-wing-thick">Espesor Raíz (Grosor Máximo) <span class="unit">MM</span></label>
-            <input type="number" id="input-wing-thick" value="30" min="5">
+            <label for="input-wing-sweep">Flecha (Retraso punta) <span class="unit">MM</span></label>
+            <input type="number" id="input-wing-sweep" value="0">
           </div>
         </div>
 
         <div class="section-title">
-          <span>02 // Perfil Geométrico (Piñata)</span>
+          <span>02 // Perfil Geométrico (Medidas en Raíz)</span>
         </div>
         <div class="card-panel">
           <div style="display: flex; gap: 10px;">
             <div class="form-group" style="flex: 1;">
-              <label for="input-wing-le">Nariz <span class="unit">%</span></label>
-              <input type="number" id="input-wing-le" value="20" min="5" max="80">
+              <label for="input-wing-le">Nariz <span class="unit">MM</span></label>
+              <input type="number" id="input-wing-le" value="30" min="5" max="500">
             </div>
             <div class="form-group" style="flex: 1;">
-              <label for="input-wing-mid">Centro <span class="unit">%</span></label>
-              <input type="number" id="input-wing-mid" value="40" min="10" max="80">
+              <label for="input-wing-mid">Centro <span class="unit">MM</span></label>
+              <input type="number" id="input-wing-mid" value="70" min="5" max="500">
             </div>
             <div class="form-group" style="flex: 1;">
-              <label for="input-wing-te">Cola <span class="unit">%</span></label>
-              <input type="number" id="input-wing-te" value="40" min="5" max="80">
+              <label for="input-wing-te">Cola <span class="unit">MM</span></label>
+              <input type="number" id="input-wing-te" value="50" min="5" max="500">
             </div>
           </div>
-          <p style="font-size: 10px; color: var(--text-muted); margin-top: -4px;">(Si la suma no es 100%, se ajustarán proporcionalmente)</p>
+          <p style="font-size: 11px; color: #60A5FA; margin-top: -4px; font-weight: bold;">
+            Cuerda Raíz Total: <span id="lbl-wing-root-total">150</span> mm
+          </p>
           <label class="checkbox-row" style="margin-top: 10px;">
             <input type="checkbox" id="check-wing-flat" checked>
             <span>Fondo Plano (Base recta para pegar)</span>
