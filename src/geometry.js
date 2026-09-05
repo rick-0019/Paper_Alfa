@@ -1772,8 +1772,8 @@ export class PaperAlfaGeometry {
     const calcSkinLengths = (chord, thicknessRatio) => {
       let leLen = 0, teTopLen = 0, teBotLen = 0;
       const numPts = 80;
-      const sX1 = sparStartPct * chord;
-      const sX2 = sparEndPct * chord;
+      const sX1 = chord * 0.5;
+      const sX2 = chord * 0.5;
       
       let prevXTop = 0, prevYTop = isFlatBottom ? 0 : 0;
       let prevXBot = 0, prevYBot = 0;
