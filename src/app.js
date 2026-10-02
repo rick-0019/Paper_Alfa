@@ -889,7 +889,6 @@ class PaperAlfaApp {
     this.selectedCadPointIndex = 0;
     this.renderCADEditor(true);
   }
-  }
 
   copyCADProfile() {
     if (!this.editingPoints || this.editingPoints.length === 0) return;
