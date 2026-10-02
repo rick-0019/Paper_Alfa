@@ -489,18 +489,25 @@
         <button id="btn-close-station-editor" class="btn-close">&times;</button>
       </div>
       <div class="modal-body modal-body-cad">
-        <div class="cad-sidebar">
-          <div class="cad-section">
-            <h4>1. Forma Base / Plantilla</h4>
-            <select id="cad-select-template" class="input-field">
-              <option value="custom">Personalizada (Dibujo Libre)</option>
-              <option value="circle">Círculo</option>
-              <option value="ellipse">Elipse</option>
-              <option value="rect">Rectángulo</option>
-              <option value="rounded_rect">Rectángulo Redondeado</option>
-              <option value="polygon">Polígono (Hexágono/Octógono)</option>
-              <option value="airfoil">Perfil Alar NACA</option>
-            </select>
+                  <div class="cad-sidebar">
+            <div class="cad-section">
+              <h4>1. Forma Base / Plantilla</h4>
+              <div style="display: flex; gap: 5px; margin-bottom: 5px;">
+                <select id="cad-select-template" class="input-field" style="flex: 1;">
+                  <option value="custom">Personalizada (Dibujo Libre)</option>
+                  <option value="circle">Círculo</option>
+                  <option value="ellipse">Elipse</option>
+                  <option value="rect">Rectángulo</option>
+                  <option value="rounded_rect">Rectángulo Redondeado</option>
+                </select>
+                <select id="cad-select-vertices" class="input-field" style="width: 80px;" title="Cantidad de Vértices">
+                  <option value="16" selected>16 Vért.</option>
+                  <option value="24">24 Vért.</option>
+                  <option value="32">32 Vért.</option>
+                  <option value="36">36 Vért.</option>
+                  <option value="48">48 Vért.</option>
+                </select>
+              </div>
           </div>
           <div class="cad-section">
             <h4>2. Portapapeles y Escalar Tamaño</h4>

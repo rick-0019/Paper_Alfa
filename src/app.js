@@ -771,7 +771,8 @@ class PaperAlfaApp {
     if (station.customPoints && station.customPoints.length >= 3) {
       this.editingPoints = JSON.parse(JSON.stringify(station.customPoints));
     } else {
-      const pts = this.geometry.getStationPerimeter2D(station, 16);
+      const vCount = document.getElementById('cad-select-vertices') ? parseInt(document.getElementById('cad-select-vertices').value) : 16;
+        const pts = this.geometry.getStationPerimeter2D(station, vCount);
       this.editingPoints = pts.slice(0, pts.length - 1).map(p => ({ y: Number(p.y.toFixed(1)), z: Number(p.z.toFixed(1)) }));
     }
 
@@ -1068,10 +1069,19 @@ class PaperAlfaApp {
         inpY.step = '0.5';
         inpY.value = pt.y;
         inpY.addEventListener('focus', () => this.selectCadPoint(i));
-        inpY.addEventListener('input', (e) => {
-          pt.y = parseFloat(e.target.value) || 0;
+        inpY.addEventListener('change', (e) => {
+          const newVal = parseFloat(e.target.value) || 0;
+          const delta = newVal - pt.y;
           this.pushCadHistory();
+          if (this.selectedCadPointIndices && this.selectedCadPointIndices.has(i)) {
+             this.selectedCadPointIndices.forEach(idx => {
+                this.editingPoints[idx].y += delta;
+             });
+          } else {
+             pt.y = newVal;
+          }
           this.drawCADCanvas();
+          this.renderCADEditor(false);
           this.selectCadPoint(i);
         });
         tdY.appendChild(inpY);
@@ -1082,10 +1092,19 @@ class PaperAlfaApp {
         inpZ.step = '0.5';
         inpZ.value = pt.z;
         inpZ.addEventListener('focus', () => this.selectCadPoint(i));
-        inpZ.addEventListener('input', (e) => {
-          pt.z = parseFloat(e.target.value) || 0;
+        inpZ.addEventListener('change', (e) => {
+          const newVal = parseFloat(e.target.value) || 0;
+          const delta = newVal - pt.z;
           this.pushCadHistory();
+          if (this.selectedCadPointIndices && this.selectedCadPointIndices.has(i)) {
+             this.selectedCadPointIndices.forEach(idx => {
+                this.editingPoints[idx].z += delta;
+             });
+          } else {
+             pt.z = newVal;
+          }
           this.drawCADCanvas();
+          this.renderCADEditor(false);
           this.selectCadPoint(i);
         });
         tdZ.appendChild(inpZ);
@@ -1272,12 +1291,10 @@ class PaperAlfaApp {
         fill: isSelected ? 'rgba(0,240,255,0.7)' : 'rgba(255,128,0,0.5)',
         stroke: '#FFFFFF',
         'stroke-width': isSelected ? '0.6' : '0.3',
-        style: 'cursor: pointer;'
+        style: 'cursor: pointer;',
+        'data-idx': i
       });
-      circle.addEventListener('click', (e) => {
-        e.stopPropagation();
-        this.selectCadPoint(i, e.shiftKey);
-      });
+      
       svg.appendChild(circle);
     });
   }
@@ -1378,19 +1395,101 @@ class PaperAlfaApp {
     }
 
     const selectTemplate = document.getElementById('cad-select-template');
-    if (selectTemplate) {
-      selectTemplate.addEventListener('change', (e) => {
-        if (!this.editingStation) return;
-        this.editingStation.shape = e.target.value;
-        const pts = this.geometry.getStationPerimeter2D(this.editingStation, 16);
-        this.editingPoints = pts.slice(0, pts.length - 1).map(p => ({ y: Number(p.y.toFixed(1)), z: Number(p.z.toFixed(1)) }));
-        this.selectedCadPointIndex = 0;
-        this.renderCADEditor(true);
-      });
-    }
+    const selectVertices = document.getElementById('cad-select-vertices');
+    
+    const updateTemplate = () => {
+      if (!this.editingStation || !selectTemplate) return;
+      this.editingStation.shape = selectTemplate.value;
+      const vCount = selectVertices ? parseInt(selectVertices.value) : 16;
+      const pts = this.geometry.getStationPerimeter2D(this.editingStation, vCount);
+      this.editingPoints = pts.slice(0, pts.length - 1).map(p => ({ y: Number(p.y.toFixed(1)), z: Number(p.z.toFixed(1)) }));
+      this.selectedCadPointIndex = 0;
+      this.renderCADEditor(true);
+    };
 
+    if (selectTemplate) selectTemplate.addEventListener('change', updateTemplate);
+    if (selectVertices) selectVertices.addEventListener('change', updateTemplate);
+
+    let cadDragging = false;
+    let dragStartX, dragStartY;
+    let dragStartPoints = [];
+    
     const svg = document.getElementById('cad-svg-editor');
     if (svg) {
+      svg.addEventListener('pointerdown', (e) => {
+        if (!this.editingPoints) return;
+        if (e.target.tagName === 'circle') {
+          const idxStr = e.target.getAttribute('data-idx');
+          if (idxStr !== null) {
+            const idx = parseInt(idxStr);
+            if (!this.selectedCadPointIndices || !this.selectedCadPointIndices.has(idx)) {
+               this.selectCadPoint(idx, e.shiftKey);
+            }
+            cadDragging = true;
+            dragStartX = e.clientX;
+            dragStartY = e.clientY;
+            dragStartPoints = Array.from(this.selectedCadPointIndices).map(i => ({
+              idx: i,
+              y: this.editingPoints[i].y,
+              z: this.editingPoints[i].z
+            }));
+            svg.setPointerCapture(e.pointerId);
+            return;
+          }
+        }
+      });
+      
+      svg.addEventListener('pointermove', (e) => {
+        if (!cadDragging) return;
+        const rect = svg.getBoundingClientRect();
+        const mmPerPixelX = 160 / rect.width;
+        const mmPerPixelY = 160 / rect.height;
+        const dx = (e.clientX - dragStartX) * mmPerPixelX;
+        const dy = (e.clientY - dragStartY) * mmPerPixelY; 
+        
+        const snap = document.getElementById('cad-snap-mm')?.checked !== false;
+
+        let changed = false;
+        dragStartPoints.forEach(sp => {
+           let newY = sp.y + dx;
+           let newZ = sp.z - dy;
+           if (snap) {
+             newY = Math.round(newY);
+             newZ = Math.round(newZ);
+           } else {
+             newY = Number(newY.toFixed(1));
+             newZ = Number(newZ.toFixed(1));
+           }
+           if (this.editingPoints[sp.idx].y !== newY || this.editingPoints[sp.idx].z !== newZ) {
+             this.editingPoints[sp.idx].y = newY;
+             this.editingPoints[sp.idx].z = newZ;
+             changed = true;
+           }
+        });
+        if (changed) {
+          this.drawCADCanvas();
+          dragStartPoints.forEach(sp => {
+            const tbody = document.getElementById('cad-points-tbody');
+            if (tbody) {
+               const tr = tbody.children[sp.idx];
+               if (tr) {
+                 const inputs = tr.querySelectorAll('input');
+                 if (inputs[0]) inputs[0].value = this.editingPoints[sp.idx].y;
+                 if (inputs[1]) inputs[1].value = this.editingPoints[sp.idx].z;
+               }
+            }
+          });
+        }
+      });
+      
+      svg.addEventListener('pointerup', (e) => {
+        if (cadDragging) {
+          cadDragging = false;
+          svg.releasePointerCapture(e.pointerId);
+          this.pushCadHistory();
+          this.renderCADEditor(false);
+        }
+      });
       svg.addEventListener('click', (e) => {
         if (!this.editingPoints || !this.isCadAddingByClick) return;
         const rect = svg.getBoundingClientRect();
