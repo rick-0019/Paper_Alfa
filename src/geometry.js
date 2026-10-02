@@ -447,7 +447,8 @@ export class PaperAlfaGeometry {
         let minDiff = Infinity;
         let startIdx = 0;
         for (let i = 0; i < pts.length; i++) {
-          const ang = Math.atan2(pts[i].z - c_z, pts[i].y - c_y);
+          // Usamos el origen (0,0) del CAD en lugar del centroide para no cambiar el punto de inicio si la forma se deforma asimétricamente
+            const ang = Math.atan2(pts[i].z, pts[i].y);
           // Distancia angular a -PI
           const diff = Math.abs(Math.atan2(Math.sin(ang + Math.PI), Math.cos(ang + Math.PI)));
           if (diff < minDiff) {
