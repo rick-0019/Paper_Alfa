@@ -274,10 +274,13 @@ export class PaperAlfaViewer3D {
 
     this.scene.add(this.mesh);
 
-    // Ajustar objetivo de cámara para que el modelo quede centrado y visible con elegancia
-    if (this.controls) {
+    // Ajustar objetivo de cámara solo en la primera carga
+    if (this.controls && !this.cameraInitialized) {
       this.controls.target.set(0, 0, 0);
       this.camera.position.set(maxDim * 1.5, maxDim * 1.2, maxDim * 1.8);
+      this.cameraInitialized = true;
+    }
+    if (this.controls) {
       this.controls.update();
     }
   }
