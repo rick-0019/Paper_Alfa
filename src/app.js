@@ -819,29 +819,29 @@ class PaperAlfaApp {
     }
   }
 
-  applySymmetry() {
+  applySymmetry(axis = 'Z') {
     if (!this.editingPoints || this.editingPoints.length < 2) return;
     
-    // 1. Detectar si el usuario dibujó en el lado izquierdo (Y <= 0) o derecho (Y >= 0)
-    const maxPos = Math.max(...this.editingPoints.map(p => p.y));
-    const minNeg = Math.min(...this.editingPoints.map(p => p.y));
-    const useLeftHalf = (Math.abs(minNeg) > maxPos && maxPos <= 0.5);
+    let primAxis = axis === 'Z' ? 'y' : 'z'; 
+    let secAxis = axis === 'Z' ? 'z' : 'y';
     
-    let sourceHalf = useLeftHalf
-      ? this.editingPoints.filter(p => p.y <= 0.2)
-      : this.editingPoints.filter(p => p.y >= -0.2);
+    const maxPos = Math.max(...this.editingPoints.map(p => p[primAxis]));
+    const minNeg = Math.min(...this.editingPoints.map(p => p[primAxis]));
+    const useNegHalf = (Math.abs(minNeg) > maxPos && maxPos <= 0.5);
+    
+    let sourceHalf = useNegHalf
+      ? this.editingPoints.filter(p => p[primAxis] <= 0.2)
+      : this.editingPoints.filter(p => p[primAxis] >= -0.2);
 
     if (sourceHalf.length < 2) return;
 
-    // 2. Limpiar puntos intermedios en el eje central Y=0 (puntos que el usuario dibujó para cerrar la plantilla de media hoja)
-    const centerPts = sourceHalf.filter(p => Math.abs(p.y) <= 0.2);
+    const centerPts = sourceHalf.filter(p => Math.abs(p[primAxis]) <= 0.2);
     if (centerPts.length > 2) {
-      const maxZ = Math.max(...centerPts.map(p => p.z));
-      const minZ = Math.min(...centerPts.map(p => p.z));
-      // Solo conservar en el eje Y=0 el punto más alto (techo) y el más bajo (piso)
+      const maxSec = Math.max(...centerPts.map(p => p[secAxis]));
+      const minSec = Math.min(...centerPts.map(p => p[secAxis]));
       sourceHalf = sourceHalf.filter(p => {
-        if (Math.abs(p.y) <= 0.2) {
-          return (Math.abs(p.z - maxZ) <= 0.2 || Math.abs(p.z - minZ) <= 0.2);
+        if (Math.abs(p[primAxis]) <= 0.2) {
+          return (Math.abs(p[secAxis] - maxSec) <= 0.2 || Math.abs(p[secAxis] - minSec) <= 0.2);
         }
         return true;
       });
@@ -849,27 +849,32 @@ class PaperAlfaApp {
 
     if (sourceHalf.length < 2) return;
 
-    // 3. Calcular Z central para ordenar por ángulo polar respecto al centro (evita cruces en líneas horizontales)
-    const cz = sourceHalf.reduce((sum, p) => sum + p.z, 0) / sourceHalf.length;
-    const getAngle = (p) => Math.atan2(p.z - cz, Math.abs(p.y));
+    const cSec = sourceHalf.reduce((sum, p) => sum + p[secAxis], 0) / sourceHalf.length;
+    const getAngle = (p) => Math.atan2(p[secAxis] - cSec, Math.abs(p[primAxis]));
     
-    // 4. Ordenar el lado derecho en sentido de las agujas del reloj desde el techo (+90°) hasta la panza (-90°)
     const rightSide = sourceHalf
-      .map(p => ({ y: Number(Math.abs(p.y).toFixed(1)), z: p.z }))
+      .map(p => {
+        const pt = { y: p.y, z: p.z };
+        pt[primAxis] = Number(Math.abs(pt[primAxis]).toFixed(1));
+        return pt;
+      })
       .sort((a, b) => {
         const angA = getAngle(a);
         const angB = getAngle(b);
         if (Math.abs(angA - angB) > 1e-4) {
-          return angB - angA; // Descendente: desde techo (+1.57 rad) a panza (-1.57 rad)
+          return angB - angA;
         }
-        return b.y - a.y;
+        return b[primAxis] - a[primAxis];
       });
 
-    // 5. El lado izquierdo recorre en orden inverso (desde panza hasta techo) y con Y negativa
     const leftSide = rightSide
       .slice()
       .reverse()
-      .map(p => ({ y: Number((-p.y).toFixed(1)), z: p.z }));
+      .map(p => {
+        const pt = { y: p.y, z: p.z };
+        pt[primAxis] = Number((-pt[primAxis]).toFixed(1));
+        return pt;
+      });
 
     const combined = [];
     const addUnique = (pt) => {
@@ -880,11 +885,10 @@ class PaperAlfaApp {
     rightSide.forEach(addUnique);
     leftSide.forEach(addUnique);
 
-    if (combined.length >= 3) {
-      this.editingPoints = combined;
-      this.selectedCadPointIndex = 0;
-      this.renderCADEditor(true);
-    }
+    this.editingPoints = combined;
+    this.selectedCadPointIndex = 0;
+    this.renderCADEditor(true);
+  }
   }
 
   copyCADProfile() {
@@ -918,14 +922,20 @@ class PaperAlfaApp {
 
   scaleCADProfile(scaleFactor) {
     if (!this.editingPoints || typeof scaleFactor !== 'number' || isNaN(scaleFactor) || scaleFactor <= 0) return;
-    this.editingPoints.forEach(p => {
-      p.y = Number((p.y * scaleFactor).toFixed(1));
-      p.z = Number((p.z * scaleFactor).toFixed(1));
+    
+    const selected = (this.selectedCadPointIndices && this.selectedCadPointIndices.size > 1) 
+      ? Array.from(this.selectedCadPointIndices) 
+      : this.editingPoints.map((_, i) => i);
+      
+    selected.forEach(i => {
+      this.editingPoints[i].y = Number((this.editingPoints[i].y * scaleFactor).toFixed(1));
+      this.editingPoints[i].z = Number((this.editingPoints[i].z * scaleFactor).toFixed(1));
     });
+    
     const status = document.getElementById('cad-clipboard-status');
     if (status) {
       status.style.display = 'block';
-      status.textContent = `✓ Tamaño escalado (× ${scaleFactor.toFixed(2)})`;
+      status.textContent = `📏 Tamaño escalado (× ${scaleFactor.toFixed(2)})`;
       setTimeout(() => { status.style.display = 'none'; }, 3000);
     }
     this.renderCADEditor(true);
@@ -983,15 +993,35 @@ class PaperAlfaApp {
     }
   }
 
-  selectCadPoint(i) {
+  selectCadPoint(i, shiftKey = false) {
     if (!this.editingPoints || i < 0 || i >= this.editingPoints.length) return;
-    this.selectedCadPointIndex = i;
+    
+    if (!this.selectedCadPointIndices) this.selectedCadPointIndices = new Set();
+    
+    if (shiftKey) {
+      if (this.selectedCadPointIndices.has(i)) {
+        this.selectedCadPointIndices.delete(i);
+        if (this.selectedCadPointIndices.size > 0) {
+          this.selectedCadPointIndex = Array.from(this.selectedCadPointIndices)[0];
+        } else {
+          this.selectedCadPointIndex = i;
+          this.selectedCadPointIndices.add(i);
+        }
+      } else {
+        this.selectedCadPointIndices.add(i);
+        this.selectedCadPointIndex = i;
+      }
+    } else {
+      this.selectedCadPointIndices.clear();
+      this.selectedCadPointIndices.add(i);
+      this.selectedCadPointIndex = i;
+    }
     
     // Resaltar en tabla y hacer scroll
     const rows = document.querySelectorAll('#cad-points-tbody tr');
     rows.forEach((r, idx) => {
-      r.classList.toggle('selected-row', idx === i);
-      if (idx === i) {
+      r.classList.toggle('selected-row', this.selectedCadPointIndices.has(idx));
+      if (idx === this.selectedCadPointIndex) {
         r.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       }
     });
@@ -1223,30 +1253,31 @@ class PaperAlfaApp {
     }));
 
     this.editingPoints.forEach((pt, i) => {
-      const isSelected = (i === this.selectedCadPointIndex);
-      if (isSelected) {
+      const isSelected = this.selectedCadPointIndices ? this.selectedCadPointIndices.has(i) : (i === this.selectedCadPointIndex);
+      const isPrimary = (i === this.selectedCadPointIndex);
+      if (isPrimary) {
         svg.appendChild(createEl('circle', {
           cx: pt.y,
           cy: -pt.z,
-          r: 5.5,
+          r: 4.5,
           fill: 'none',
           stroke: '#00F0FF',
-          'stroke-width': '0.8',
+          'stroke-width': '0.6',
           opacity: '0.7'
         }));
       }
       const circle = createEl('circle', {
         cx: pt.y,
         cy: -pt.z,
-        r: isSelected ? 3.2 : 1.8,
-        fill: isSelected ? '#00F0FF' : '#FF8000',
+        r: isSelected ? 2.2 : 1.2,
+        fill: isSelected ? 'rgba(0,240,255,0.7)' : 'rgba(255,128,0,0.5)',
         stroke: '#FFFFFF',
-        'stroke-width': isSelected ? '0.8' : '0.4',
+        'stroke-width': isSelected ? '0.6' : '0.3',
         style: 'cursor: pointer;'
       });
       circle.addEventListener('click', (e) => {
         e.stopPropagation();
-        this.selectCadPoint(i);
+        this.selectCadPoint(i, e.shiftKey);
       });
       svg.appendChild(circle);
     });
@@ -1279,9 +1310,13 @@ class PaperAlfaApp {
       btnRedo.addEventListener('click', () => this.cadRedo());
     }
 
-    const btnSymmetry = document.getElementById('btn-cad-symmetry');
-    if (btnSymmetry) {
-      btnSymmetry.addEventListener('click', () => this.applySymmetry());
+    const btnSymmetryZ = document.getElementById('btn-cad-symmetry-z');
+    if (btnSymmetryZ) {
+      btnSymmetryZ.addEventListener('click', () => this.applySymmetry('Z'));
+    }
+    const btnSymmetryY = document.getElementById('btn-cad-symmetry-y');
+    if (btnSymmetryY) {
+      btnSymmetryY.addEventListener('click', () => this.applySymmetry('Y'));
     }
 
     const btnCenter = document.getElementById('btn-cad-center');
