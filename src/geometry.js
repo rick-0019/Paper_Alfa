@@ -425,7 +425,41 @@ export class PaperAlfaGeometry {
       return this.sampleEquidistantPolyline([...pointsTop, ...pointsBot.slice(1, -1)], N);
     } else if (shape === 'custom') {
       if (station.customPoints && station.customPoints.length >= 3) {
-        const pts = station.customPoints.map(p => ({ y: cy + (p.y || 0), z: cz + (p.z || 0) }));
+        let pts = station.customPoints.map(p => ({ y: cy + (p.y || 0), z: cz + (p.z || 0) }));
+        
+        // 1. Calcular Centroide
+        let c_y = 0, c_z = 0;
+        pts.forEach(p => { c_y += p.y; c_z += p.z; });
+        c_y /= pts.length;
+        c_z /= pts.length;
+        
+        // 2. Normalizar Sentido (Winding) a Antihorario (Area > 0)
+        let area = 0;
+        for (let i = 0; i < pts.length; i++) {
+          const j = (i + 1) % pts.length;
+          area += (pts[i].y * pts[j].z - pts[j].y * pts[i].z);
+        }
+        if (area < 0) {
+          pts.reverse();
+        }
+        
+        // 3. Alinear el punto de inicio con el rayo de -PI (lado izquierdo)
+        let minDiff = Infinity;
+        let startIdx = 0;
+        for (let i = 0; i < pts.length; i++) {
+          const ang = Math.atan2(pts[i].z - c_z, pts[i].y - c_y);
+          // Distancia angular a -PI
+          const diff = Math.abs(Math.atan2(Math.sin(ang + Math.PI), Math.cos(ang + Math.PI)));
+          if (diff < minDiff) {
+            minDiff = diff;
+            startIdx = i;
+          }
+        }
+        
+        if (startIdx !== 0) {
+          pts = pts.slice(startIdx).concat(pts.slice(0, startIdx));
+        }
+        
         return this.sampleEquidistantPolyline(pts, N);
       }
     }
