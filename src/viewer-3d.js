@@ -300,14 +300,32 @@ export class PaperAlfaViewer3D {
 
   exportOBJ(filename = 'modelo.obj') {
     if (!this.mesh || typeof THREE.OBJExporter === 'undefined') {
-      console.error('OBJExporter no está cargado o no hay malla.', { mesh: this.mesh, objExporter: typeof THREE.OBJExporter });
+      console.error('OBJExporter no está cargado o no hay malla.');
       alert('Error: No se pudo cargar el módulo de exportación 3D o no hay modelo generado.');
       return;
     }
     
+    // Ocultar líneas, cruces de ejes y wireframes eliminándolos temporalmente
+    const hiddenObjects = [];
+    this.mesh.traverse((child) => {
+      if (child.isLine || child.isLineSegments || child.isPoints) {
+        hiddenObjects.push({ parent: child.parent, child: child });
+      }
+    });
+    
+    // Removerlos del árbol temporalmente
+    hiddenObjects.forEach(item => {
+      item.parent.remove(item.child);
+    });
+    
     try {
       const exporter = new THREE.OBJExporter();
       const result = exporter.parse(this.mesh);
+      
+      // Restaurarlos inmediatamente
+      hiddenObjects.forEach(item => {
+        item.parent.add(item.child);
+      });
       
       const blob = new Blob([result], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
@@ -321,7 +339,12 @@ export class PaperAlfaViewer3D {
       URL.revokeObjectURL(url);
     } catch(err) {
       console.error('Error exportando OBJ:', err);
-      alert('Ocurri un error al exportar el OBJ.');
+      alert('Ocurrió un error al exportar el OBJ.');
+      
+      // Restaurar en caso de error
+      hiddenObjects.forEach(item => {
+        item.parent.add(item.child);
+      });
     }
   }
 }
