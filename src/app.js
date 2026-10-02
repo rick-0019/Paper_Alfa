@@ -202,6 +202,16 @@ class PaperAlfaApp {
 
   bindToolbarButtons() {
     // Botón de Exportación PDF A4 1:1
+    const btnExportObj = document.getElementById('btn-export-obj');
+    if (btnExportObj) {
+      btnExportObj.addEventListener('click', () => {
+        if (this.viewer3D) {
+          const type = this.activePhase === 'phase1' ? this.primitiveType : 'loft';
+          this.viewer3D.exportOBJ(`PaperAlfa_${type}.obj`);
+        }
+      });
+    }
+
     const btnExport = document.getElementById('btn-export-pdf');
     if (btnExport) {
       btnExport.addEventListener('click', () => {

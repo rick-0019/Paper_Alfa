@@ -297,4 +297,31 @@ export class PaperAlfaViewer3D {
       this.renderer.render(this.scene, this.camera);
     }
   }
+
+  exportOBJ(filename = 'modelo.obj') {
+    if (!this.meshGroup || typeof THREE.OBJExporter === 'undefined') {
+      console.error('OBJExporter no est cargado o no hay malla.');
+      alert('Error: No se pudo cargar el mdulo de exportacin 3D o no hay modelo generado.');
+      return;
+    }
+    
+    try {
+      const exporter = new THREE.OBJExporter();
+      const result = exporter.parse(this.meshGroup);
+      
+      const blob = new Blob([result], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.style.display = 'none';
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch(err) {
+      console.error('Error exportando OBJ:', err);
+      alert('Ocurri un error al exportar el OBJ.');
+    }
+  }
 }
