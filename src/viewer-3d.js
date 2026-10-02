@@ -318,9 +318,18 @@ export class PaperAlfaViewer3D {
       item.parent.remove(item.child);
     });
     
+    // Escalar temporalmente a metros (Blender espera 1 unidad = 1 metro, nosotros usamos mm)
+    const originalScale = this.mesh.scale.clone();
+    this.mesh.scale.set(0.001, 0.001, 0.001);
+    this.mesh.updateMatrixWorld(true);
+    
     try {
       const exporter = new THREE.OBJExporter();
       const result = exporter.parse(this.mesh);
+      
+      // Restaurar escala
+      this.mesh.scale.copy(originalScale);
+      this.mesh.updateMatrixWorld(true);
       
       // Restaurarlos inmediatamente
       hiddenObjects.forEach(item => {
@@ -340,6 +349,10 @@ export class PaperAlfaViewer3D {
     } catch(err) {
       console.error('Error exportando OBJ:', err);
       alert('Ocurrió un error al exportar el OBJ.');
+      
+      // Restaurar escala
+      this.mesh.scale.copy(originalScale);
+      this.mesh.updateMatrixWorld(true);
       
       // Restaurar en caso de error
       hiddenObjects.forEach(item => {
