@@ -1065,10 +1065,10 @@ class PaperAlfaApp {
       this.editingPoints.forEach((pt, i) => {
         const tr = document.createElement('tr');
         tr.addEventListener('click', (e) => {
-          if (!e.target.matches('input, button')) {
-            this.selectCadPoint(i);
-          }
-        });
+            if (!e.target.matches('input, button')) {
+              this.selectCadPoint(i, e.shiftKey);
+            }
+          });
         
         const tdIdx = document.createElement('td');
         tdIdx.textContent = i + 1;
@@ -1432,9 +1432,11 @@ class PaperAlfaApp {
           const idxStr = e.target.getAttribute('data-idx');
           if (idxStr !== null) {
             const idx = parseInt(idxStr);
-            if (!this.selectedCadPointIndices || !this.selectedCadPointIndices.has(idx)) {
-               this.selectCadPoint(idx, e.shiftKey);
-            }
+            if (e.shiftKey) {
+                this.selectCadPoint(idx, true);
+              } else if (!this.selectedCadPointIndices || !this.selectedCadPointIndices.has(idx)) {
+                this.selectCadPoint(idx, false);
+              }
             cadDragging = true;
             dragStartX = e.clientX;
             dragStartY = e.clientY;
