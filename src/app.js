@@ -1147,9 +1147,13 @@ class PaperAlfaApp {
     }
 
     this.drawCADCanvas();
-    if (this.selectedCadPointIndex !== null && this.editingPoints && this.selectedCadPointIndex < this.editingPoints.length) {
-      this.selectCadPoint(this.selectedCadPointIndex);
-    }
+      const rows = document.querySelectorAll('#cad-points-tbody tr');
+      rows.forEach((r, idx) => {
+        r.classList.toggle('selected-row', this.selectedCadPointIndices && this.selectedCadPointIndices.has(idx));
+        if (idx === this.selectedCadPointIndex) {
+          r.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      });
   }
 
   drawCADCanvas() {
