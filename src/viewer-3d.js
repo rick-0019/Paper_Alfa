@@ -158,7 +158,12 @@ export class PaperAlfaViewer3D {
       const minZ = Math.min(...zs);
       const maxZ = Math.max(...zs);
       const centerZ = (minZ + maxZ) / 2;
-      const N = 64;
+      let N = 64;
+      const customStations = stations.filter(s => s.shape === 'custom' && s.customPoints && s.customPoints.length > 0);
+      if (customStations.length > 0) {
+        // Encontrar la resolución máxima elegida por el usuario en el CAD
+        N = Math.max(...customStations.map(s => s.customPoints.length));
+      }
 
       // 1. Dibujar cada estación 2D y sus marcadores técnicos de Centroide X y Eje +
       stations.forEach((s, idx) => {

@@ -992,7 +992,11 @@ export class PaperAlfaGeometry {
 
     const s1 = params.station1 || { d: d1, z: z1, shape: 'circle' };
     const s2 = params.station2 || { d: d2, z: z2, shape: 'circle' };
-    const N = 32;
+    let N = 32;
+    const customStations = [s1, s2].filter(s => s.shape === 'custom' && s.customPoints && s.customPoints.length > 0);
+    if (customStations.length > 0) {
+      N = Math.max(...customStations.map(s => s.customPoints.length));
+    }
     const pts3D_1 = this.getStationPerimeter3D(s1, 0, N);
     const pts3D_2 = this.getStationPerimeter3D(s2, L, N);
 
