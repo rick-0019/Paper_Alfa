@@ -299,15 +299,15 @@ export class PaperAlfaViewer3D {
   }
 
   exportOBJ(filename = 'modelo.obj') {
-    if (!this.meshGroup || typeof THREE.OBJExporter === 'undefined') {
-      console.error('OBJExporter no est cargado o no hay malla.');
-      alert('Error: No se pudo cargar el mdulo de exportacin 3D o no hay modelo generado.');
+    if (!this.mesh || typeof THREE.OBJExporter === 'undefined') {
+      console.error('OBJExporter no está cargado o no hay malla.', { mesh: this.mesh, objExporter: typeof THREE.OBJExporter });
+      alert('Error: No se pudo cargar el módulo de exportación 3D o no hay modelo generado.');
       return;
     }
     
     try {
       const exporter = new THREE.OBJExporter();
-      const result = exporter.parse(this.meshGroup);
+      const result = exporter.parse(this.mesh);
       
       const blob = new Blob([result], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
