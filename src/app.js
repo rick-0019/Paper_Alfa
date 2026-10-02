@@ -1564,8 +1564,8 @@ class PaperAlfaApp {
    */
   recalculateAndRender() {
     const type = document.getElementById('select-primitive')?.value || 'truncated_cone';
-    const d1 = parseFloat(document.getElementById('input-d1')?.value) || 80;
-    const d2 = parseFloat(document.getElementById('input-d2')?.value) || 45;
+    const d1 = (document.getElementById('input-d1')?.value !== '' ? Number(document.getElementById('input-d1').value) : 80);
+    const d2 = (document.getElementById('input-d2')?.value !== '' ? Number(document.getElementById('input-d2').value) : 45);
     const sides = parseInt(document.getElementById('input-sides')?.value) || 6;
     const rings = parseInt(document.getElementById('input-rings')?.value) || 5;
     const h = parseFloat(document.getElementById('input-h')?.value) || 90;
@@ -1828,8 +1828,8 @@ class PaperAlfaApp {
       phase1_primitives: {
         type: 'truncated_cone',
         parameters: {
-          d1: parseFloat(document.getElementById('input-d1')?.value) || 80,
-          d2: parseFloat(document.getElementById('input-d2')?.value) || 45,
+          d1: (document.getElementById('input-d1')?.value !== '' ? Number(document.getElementById('input-d1').value) : 80),
+          d2: (document.getElementById('input-d2')?.value !== '' ? Number(document.getElementById('input-d2').value) : 45),
           height: parseFloat(document.getElementById('input-h')?.value) || 90
         },
         calculatedMetrics: this.currentModelData?.metrics || {}
@@ -1853,8 +1853,8 @@ class PaperAlfaApp {
       activePhase: this.activePhase || 'phase1',
       primitiveType: type,
       parameters: {
-        d1: parseFloat(document.getElementById('input-d1')?.value) || 80,
-        d2: parseFloat(document.getElementById('input-d2')?.value) || 45,
+        d1: (document.getElementById('input-d1')?.value !== '' ? Number(document.getElementById('input-d1').value) : 80),
+        d2: (document.getElementById('input-d2')?.value !== '' ? Number(document.getElementById('input-d2').value) : 45),
         sides: parseInt(document.getElementById('input-sides')?.value) || 6,
         rings: parseInt(document.getElementById('input-rings')?.value) || 5,
         height: parseFloat(document.getElementById('input-h')?.value) || 90,

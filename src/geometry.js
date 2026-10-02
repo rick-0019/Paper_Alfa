@@ -16,8 +16,8 @@ export class PaperAlfaGeometry {
    * @returns {Object} Datos de despiece 2D listos para SVG y PDF A4 1:1
    */
   calculateTruncatedCone(params) {
-    const d1 = parseFloat(params.d1) || 80;
-    const d2 = parseFloat(params.d2) || 45;
+    const d1 = (params.d1 !== undefined && params.d1 !== '' && !isNaN(params.d1) ? Number(params.d1) : 80);
+    const d2 = (params.d2 !== undefined && params.d2 !== '' && !isNaN(params.d2) ? Number(params.d2) : 45);
     const h = parseFloat(params.height) || 90;
     const tabH = (params.tabHeight !== undefined && !isNaN(params.tabHeight)) ? Number(params.tabHeight) : 6;
     const tabAngle = parseFloat(params.tabAngleDeg) || 60;
@@ -337,16 +337,16 @@ export class PaperAlfaGeometry {
     const raw = [];
 
     if (shape === 'ellipse') {
-      const rx = (station.w || station.d || 60) / 2;
-      const ry = (station.h || station.d || 40) / 2;
+      const rx = ((station.w !== undefined && station.w !== '' ? Number(station.w) : (station.d !== undefined && station.d !== '' ? Number(station.d) : 60))) / 2;
+      const ry = ((station.h !== undefined && station.h !== '' ? Number(station.h) : (station.d !== undefined && station.d !== '' ? Number(station.d) : 40))) / 2;
       for (let i = 0; i < N; i++) {
         const phi = (i / N) * 2 * Math.PI - Math.PI;
         raw.push({ y: cy + rx * Math.cos(phi), z: cz + ry * Math.sin(phi) });
       }
       return this.sampleEquidistantPolyline(raw, N);
     } else if (shape === 'rect') {
-      const w = station.w || 60;
-      const h = station.h || 40;
+      const w = (station.w !== undefined && station.w !== '' ? Number(station.w) : 60);
+      const h = (station.h !== undefined && station.h !== '' ? Number(station.h) : 40);
       const pts = [];
       const m = Math.max(1, Math.floor(N / 4));
       
@@ -368,8 +368,8 @@ export class PaperAlfaGeometry {
       pts.push({ ...pts[0] }); // Cerrar el loop
       return pts;
     } else if (shape === 'rounded_rect') {
-      const w = station.w || 60;
-      const h = station.h || 40;
+      const w = (station.w !== undefined && station.w !== '' ? Number(station.w) : 60);
+      const h = (station.h !== undefined && station.h !== '' ? Number(station.h) : 40);
       const r = Math.min(station.r || 10, w/2, h/2);
       const steps = 8;
       const corners = [
@@ -386,7 +386,7 @@ export class PaperAlfaGeometry {
       });
       return this.sampleEquidistantPolyline(raw, N);
     } else if (shape === 'polygon') {
-      const d = station.d || 60;
+      const d = (station.d !== undefined && station.d !== '' ? Number(station.d) : 60);
       const sides = Math.max(3, parseInt(station.sides) || 6);
       const rad = d / 2;
       const pts = [];
@@ -465,7 +465,7 @@ export class PaperAlfaGeometry {
     }
 
     // Default: 'circle'
-    const R = (station.d || 60) / 2;
+    const R = ((station.d !== undefined && station.d !== '' ? Number(station.d) : 60)) / 2;
     for (let i = 0; i < N; i++) {
       const phi = (i / N) * 2 * Math.PI - Math.PI;
       raw.push({ y: cy + R * Math.cos(phi), z: cz + R * Math.sin(phi) });
@@ -538,7 +538,7 @@ export class PaperAlfaGeometry {
    * Generador para el caso Cilindro (D1 == D2)
    */
   calculateCylinder(params) {
-    const d = parseFloat(params.d1) || 80;
+    const d = (params.d1 !== undefined && params.d1 !== '' && !isNaN(params.d1) ? Number(params.d1) : 80);
     const h = parseFloat(params.height) || 90;
     const tabH = (params.tabHeight !== undefined && !isNaN(params.tabHeight)) ? Number(params.tabHeight) : 6;
     const teethCount = parseInt(params.teethPerArc) || 16;
@@ -833,7 +833,7 @@ export class PaperAlfaGeometry {
    * Genera el desarrollo 2D de un Cono Completo (Vértice en punta sin D2)
    */
   calculateCone(params) {
-    const d1 = parseFloat(params.d1) || 80;
+    const d1 = (params.d1 !== undefined && params.d1 !== '' && !isNaN(params.d1) ? Number(params.d1) : 80);
     const h = parseFloat(params.height) || 90;
     const tabH = (params.tabHeight !== undefined && !isNaN(params.tabHeight)) ? Number(params.tabHeight) : 6;
     const teethCount = parseInt(params.teethPerArc) || 16;
@@ -982,11 +982,11 @@ export class PaperAlfaGeometry {
    * Genera desarrollo 2D por Triangulación para una sección excéntrica (Descentrado Vertical Z / Oblicua / Codo)
    */
   calculateEccentricSegment(params) {
-    const d1 = parseFloat(params.d1) || 60;
-    const d2 = parseFloat(params.d2) || 60;
+    const d1 = (params.d1 !== undefined && params.d1 !== '' && !isNaN(params.d1) ? Number(params.d1) : 60);
+    const d2 = (params.d2 !== undefined && params.d2 !== '' && !isNaN(params.d2) ? Number(params.d2) : 60);
     const L = parseFloat(params.height) || 50;
-    const z1 = parseFloat(params.z1) || 0;
-    const z2 = parseFloat(params.z2) || 0;
+    const z1 = (params.z1 !== undefined && params.z1 !== '' && !isNaN(params.z1) ? Number(params.z1) : 0);
+    const z2 = (params.z2 !== undefined && params.z2 !== '' && !isNaN(params.z2) ? Number(params.z2) : 0);
     const tabH = (params.tabHeight !== undefined && !isNaN(params.tabHeight)) ? Number(params.tabHeight) : 6;
     const margin = parseFloat(params.marginSecurity) || 5;
 
@@ -1122,7 +1122,7 @@ export class PaperAlfaGeometry {
    * Genera desarrollo 2D para un Prisma N-Lados (Caja / Tubo Poligonal)
    */
   calculatePrism(params) {
-    const d1 = parseFloat(params.d1) || 80;
+    const d1 = (params.d1 !== undefined && params.d1 !== '' && !isNaN(params.d1) ? Number(params.d1) : 80);
     const h = parseFloat(params.height) || 90;
     const sides = parseInt(params.sides) || 6;
     const tabH = (params.tabHeight !== undefined && !isNaN(params.tabHeight)) ? Number(params.tabHeight) : 6;
@@ -1249,7 +1249,7 @@ export class PaperAlfaGeometry {
    * Genera desarrollo 2D para una Pirámide N-Lados
    */
   calculatePyramid(params) {
-    const d1 = parseFloat(params.d1) || 80;
+    const d1 = (params.d1 !== undefined && params.d1 !== '' && !isNaN(params.d1) ? Number(params.d1) : 80);
     const h = parseFloat(params.height) || 90;
     const sides = parseInt(params.sides) || 4;
     const tabH = (params.tabHeight !== undefined && !isNaN(params.tabHeight)) ? Number(params.tabHeight) : 6;
@@ -1349,7 +1349,7 @@ export class PaperAlfaGeometry {
    * Genera desarrollo 2D para Media Esfera / Cúpula por Anillos Latitudinales (Conos Truncados Apilados)
    */
   calculateHemisphere(params) {
-    const d1 = parseFloat(params.d1) || 100; // Diámetro ecuatorial
+    const d1 = (params.d1 !== undefined && params.d1 !== '' && !isNaN(params.d1) ? Number(params.d1) : 100); // Diámetro ecuatorial
     const rings = Math.max(3, Math.min(12, parseInt(params.rings) || 5)); // Cantidad de anillos
     const tabH = (params.tabHeight !== undefined && !isNaN(params.tabHeight)) ? Number(params.tabHeight) : 6;
     const teethCount = parseInt(params.teethPerArc) || 16;
@@ -1438,7 +1438,7 @@ export class PaperAlfaGeometry {
    * Genera desarrollo 2D para una Esfera Completa por Anillos Latitudinales
    */
   calculateSphere(params) {
-    const d1 = parseFloat(params.d1) || 100;
+    const d1 = (params.d1 !== undefined && params.d1 !== '' && !isNaN(params.d1) ? Number(params.d1) : 100);
     const rings = Math.max(3, Math.min(10, parseInt(params.rings) || 5));
     const tabH = (params.tabHeight !== undefined && !isNaN(params.tabHeight)) ? Number(params.tabHeight) : 6;
     const teethCount = parseInt(params.teethPerArc) || 16;
@@ -1513,8 +1513,8 @@ export class PaperAlfaGeometry {
       const p = {
         station1: s1,
         station2: s2,
-        d1: s1.d || s1.w || 60,
-        d2: s2.d || s2.w || 60,
+        d1: (s1.d !== undefined && s1.d !== '' ? Number(s1.d) : (s1.w !== undefined && s1.w !== '' ? Number(s1.w) : 60)),
+        d2: (s2.d !== undefined && s2.d !== '' ? Number(s2.d) : (s2.w !== undefined && s2.w !== '' ? Number(s2.w) : 60)),
         height: length,
         z1: s1.z || 0,
         z2: s2.z || 0,
